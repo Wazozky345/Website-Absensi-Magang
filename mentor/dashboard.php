@@ -10,6 +10,10 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
     exit;
 }
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $mentor_id   = $_SESSION['user_id'];
 $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
 
@@ -40,11 +44,17 @@ $total_approved = ($q_approved) ? $q_approved->fetch_assoc()['total'] : 0;
 
 <body class="flex h-screen overflow-hidden text-gray-800 bg-[#F4F7FE]">
 
-    <?php include '../components/sidebar_mentor.php'; ?>
+    <?php 
+    if (file_exists(__DIR__ . '/../components/sidebar_mentor.php')) {
+        include __DIR__ . '/../components/sidebar_mentor.php';
+    } elseif (file_exists(__DIR__ . '/../components/sidebar.php')) {
+        include __DIR__ . '/../components/sidebar.php';
+    }
+    ?>
 
     <main class="flex-1 flex flex-col overflow-y-auto w-full relative">
 
-        <!-- TOPBAR MENTOR -->
+        <!-- TOPBAR MENTOR WITH PROFILE DROPDOWN -->
         <header class="bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-30">
             <div class="flex items-center gap-3">
                 <button id="mobileMenuBtn" class="md:hidden text-gray-500 hover:text-gray-700">
@@ -58,12 +68,34 @@ $total_approved = ($q_approved) ? $q_approved->fetch_assoc()['total'] : 0;
                 </div>
             </div>
 
-            <div class="flex items-center gap-3">
-                <div class="text-right hidden sm:block">
-                    <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor); ?></p>
-                    <p class="text-[10px] text-gray-400">Pembimbing Lapangan</p>
+            <!-- WIDGET PROFIL POJOK KANAN (DROPDOWN TRIGGER) -->
+            <div class="relative">
+                <button id="profileDropdownBtn" onclick="toggleProfileDropdown()" class="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-gray-100 transition focus:outline-none">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor); ?></p>
+                        <p class="text-[10px] text-gray-400">Pembimbing Lapangan</p>
+                    </div>
+                    <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($nama_mentor); ?>&background=2563eb&color=ffffff&size=128" class="w-9 h-9 rounded-full border-2 border-blue-100 shadow-sm">
+                </button>
+
+                <!-- MENU DROPDOWN POJOK KANAN -->
+                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 transition-all">
+                    <div class="px-4 py-2 border-b border-gray-100">
+                        <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor); ?></p>
+                        <p class="text-[10px] text-emerald-600 font-semibold">● Sesi Mentor Aktif</p>
+                    </div>
+
+                    <!-- TOMBOL BUKA MODAL UBAH PIN -->
+                    <button type="button" onclick="openModalUbahPinMentor()" class="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium transition">
+                        🔑 Ubah PIN Keamanan
+                    </button>
+
+                    <div class="border-t border-gray-100 my-1"></div>
+
+                    <a href="../logout.php" class="flex items-center gap-2.5 px-4 py-2.5 text-xs text-rose-600 hover:bg-rose-50 font-bold transition">
+                        🚪 Keluar / Logout
+                    </a>
                 </div>
-                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($nama_mentor); ?>&background=2563eb&color=ffffff&size=128" class="w-9 h-9 rounded-full border-2 border-blue-100">
             </div>
         </header>
 
@@ -170,7 +202,101 @@ $total_approved = ($q_approved) ? $q_approved->fetch_assoc()['total'] : 0;
         </div>
     </main>
 
-    <?php include '../components/alert.php'; ?>
+    <!-- MODAL POPUP UBAH PIN DI DASHBOARD MENTOR -->
+    <div id="modalUbahPinMentor" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 transition-all">
+        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-md overflow-hidden transform transition-all scale-95 opacity-0 duration-300" id="modalUbahPinContent">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div>
+                    <h3 class="text-base font-bold text-gray-800">Ubah PIN Keamanan</h3>
+                    <p class="text-xs text-gray-400">Ganti PIN 4-digit untuk autentikasi login Anda</p>
+                </div>
+                <button type="button" onclick="closeModalUbahPinMentor()" class="text-gray-400 hover:text-gray-600 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form method="POST" action="../proses/proses_ubah_pin_mentor.php" class="p-6 space-y-4">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">PIN Saat Ini (Lama) <span class="text-rose-500">*</span></label>
+                    <input type="password" name="pin_lama" maxlength="4" inputmode="numeric" required placeholder="••••" class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-3 text-xs text-gray-800 focus:outline-none focus:border-blue-500 font-bold tracking-widest">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">PIN Baru (4 Digit) <span class="text-rose-500">*</span></label>
+                    <input type="password" name="pin_baru" maxlength="4" inputmode="numeric" required placeholder="••••" class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-3 text-xs text-gray-800 focus:outline-none focus:border-blue-500 font-bold tracking-widest">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">Konfirmasi PIN Baru <span class="text-rose-500">*</span></label>
+                    <input type="password" name="konfirmasi_pin" maxlength="4" inputmode="numeric" required placeholder="••••" class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-3 text-xs text-gray-800 focus:outline-none focus:border-blue-500 font-bold tracking-widest">
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                    <button type="button" onclick="closeModalUbahPinMentor()" class="px-4 py-2.5 rounded-2xl text-xs font-bold text-gray-500 hover:bg-gray-100 transition">
+                        Batal
+                    </button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-2xl shadow-lg shadow-blue-200 transition text-xs">
+                        Simpan PIN Baru
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT DROPDOWN & MODAL POPUP -->
+    <script>
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdownMenu');
+            if (dropdown) dropdown.classList.toggle('hidden');
+        }
+
+        function openModalUbahPinMentor() {
+            const dropdown = document.getElementById('profileDropdownMenu');
+            if (dropdown) dropdown.classList.add('hidden'); // Tutup dropdown
+
+            const modal = document.getElementById('modalUbahPinMentor');
+            const content = document.getElementById('modalUbahPinContent');
+            if (!modal || !content) return;
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeModalUbahPinMentor() {
+            const modal = document.getElementById('modalUbahPinMentor');
+            const content = document.getElementById('modalUbahPinContent');
+            if (!modal || !content) return;
+
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // TUTUP DROPDOWN SAAT KLIK DI LUAR AREA PROFIL
+        document.addEventListener('click', function(e) {
+            const btn = document.getElementById('profileDropdownBtn');
+            const dropdown = document.getElementById('profileDropdownMenu');
+            if (btn && dropdown && !btn.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    </script>
+
+    <?php 
+    if (file_exists(__DIR__ . '/../components/alert.php')) {
+        include __DIR__ . '/../components/alert.php';
+    } 
+    ?>
 
 </body>
 
