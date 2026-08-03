@@ -2,6 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 require_once __DIR__ . '/../config/koneksi.php';
 
 // Proteksi Hak Akses Role Mentor
@@ -10,8 +11,37 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
     exit;
 }
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $mentor_id   = $_SESSION['user_id'];
 $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
+
+// AMBIL SEMUA DATA SUBMISSION MAHASISWA DARI DATABASE
+$submission_pagi = [];
+$submission_sore = [];
+
+$query_submission = $conn->query("
+    SELECT td.*, t.judul_tugas, u.nama_user, u.nim, u.kelas
+    FROM tugas_detail td
+    JOIN tugas t ON td.tugas_id = t.id
+    JOIN users u ON td.user_id = u.id
+    WHERE t.mentor_id = '$mentor_id'
+    ORDER BY td.waktu_kirim DESC
+");
+
+if ($query_submission && $query_submission->num_rows > 0) {
+    while ($row = $query_submission->fetch_assoc()) {
+        $jam_kirim = date('H:i:s', strtotime($row['waktu_kirim']));
+        // Pengelompokan Batch berdasarkan Sesi atau Jam Kirim
+        if ($row['sesi_batch'] === 'Pagi' || $jam_kirim <= '12:00:00') {
+            $submission_pagi[] = $row;
+        } else {
+            $submission_sore[] = $row;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -27,7 +57,13 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
 
 <body class="flex h-screen overflow-hidden text-gray-800 bg-[#F4F7FE]">
 
-    <?php include '../components/sidebar_mentor.php'; ?>
+    <?php 
+    if (file_exists(__DIR__ . '/../components/sidebar_mentor.php')) {
+        include __DIR__ . '/../components/sidebar_mentor.php';
+    } elseif (file_exists(__DIR__ . '/../components/sidebar.php')) {
+        include __DIR__ . '/../components/sidebar.php';
+    }
+    ?>
 
     <main class="flex-1 flex flex-col overflow-y-auto w-full relative">
 
@@ -66,7 +102,9 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
                             <p class="text-[10px] text-gray-400">Batch review tugas s.d. 12:00 WIB</p>
                         </div>
                     </div>
-                    <span class="bg-amber-50 text-amber-700 font-bold text-xs px-3 py-1 rounded-full">Menunggu Review</span>
+                    <span class="bg-amber-50 text-amber-700 font-bold text-xs px-3 py-1 rounded-full">
+                        <?php echo count($submission_pagi); ?> Berkas Masuk
+                    </span>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -77,20 +115,52 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
                                 <th class="py-2.5">Judul Tugas</th>
                                 <th class="py-2.5">File Dikirim</th>
                                 <th class="py-2.5">Waktu Kirim</th>
+                                <th class="py-2.5 text-center">Status</th>
                                 <th class="py-2.5 text-center">Aksi Mentor</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50 text-gray-700">
-                            <tr class="hover:bg-gray-50/50 transition">
-                                <td class="py-3 font-bold text-gray-800">Alvin Nurfaiz</td>
-                                <td class="py-3">Analisis Kebutuhan Sistem W7</td>
-                                <td class="py-3"><a href="#" class="text-blue-600 font-semibold hover:underline">📄 tugas_alvin_w7.pdf</a></td>
-                                <td class="py-3 text-gray-500">08:14 WIB</td>
-                                <td class="py-3 text-center space-x-1.5">
-                                    <button onclick="prosesApproval('1', 'Alvin Nurfaiz', 'Setujui')" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl transition">Setujui</button>
-                                    <button onclick="prosesApproval('1', 'Alvin Nurfaiz', 'Revisi')" class="bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl transition">Minta Revisi</button>
-                                </td>
-                            </tr>
+                            <?php if (!empty($submission_pagi)): ?>
+                                <?php foreach ($submission_pagi as $sp): 
+                                    $file_path = "../uploads/tugas_mahasiswa/" . htmlspecialchars($sp['file_balasan']);
+                                    $has_file  = !empty($sp['file_balasan']) && file_exists($file_path);
+
+                                    $status_class = 'bg-amber-50 text-amber-600';
+                                    if ($sp['status_approval'] === 'Disetujui') $status_class = 'bg-emerald-50 text-emerald-600';
+                                    elseif ($sp['status_approval'] === 'Perlu Revisi') $status_class = 'bg-rose-50 text-rose-600';
+                                ?>
+                                    <tr class="hover:bg-gray-50/50 transition">
+                                        <td class="py-3">
+                                            <p class="font-bold text-gray-800"><?php echo htmlspecialchars($sp['nama_user']); ?></p>
+                                            <p class="text-[10px] text-gray-400"><?php echo htmlspecialchars($sp['nim']); ?></p>
+                                        </td>
+                                        <td class="py-3 font-semibold text-gray-700 max-w-xs truncate"><?php echo htmlspecialchars($sp['judul_tugas']); ?></td>
+                                        <td class="py-3">
+                                            <?php if ($has_file): ?>
+                                                <a href="<?php echo $file_path; ?>" download class="text-blue-600 font-semibold hover:underline flex items-center gap-1">
+                                                    📄 <?php echo htmlspecialchars($sp['file_balasan']); ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-gray-300 italic">Berkas tidak ditemukan</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="py-3 text-gray-500"><?php echo date('H:i', strtotime($sp['waktu_kirim'])); ?> WIB</td>
+                                        <td class="py-3 text-center">
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold <?php echo $status_class; ?>">
+                                                <?php echo htmlspecialchars($sp['status_approval']); ?>
+                                            </span>
+                                        </td>
+                                        <td class="py-3 text-center space-x-1.5">
+                                            <button onclick="prosesApproval('<?php echo $sp['id']; ?>', '<?php echo addslashes($sp['nama_user']); ?>', 'Setujui')" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl transition">Setujui</button>
+                                            <button onclick="prosesApproval('<?php echo $sp['id']; ?>', '<?php echo addslashes($sp['nama_user']); ?>', 'Revisi')" class="bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl transition">Minta Revisi</button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="6" class="py-6 text-center text-gray-400 font-medium">Belum ada tugas masuk di sesi pagi.</td>
+                                </tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -106,7 +176,9 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
                             <p class="text-[10px] text-gray-400">Batch review tugas s.d. 17:00 WIB</p>
                         </div>
                     </div>
-                    <span class="bg-purple-50 text-purple-700 font-bold text-xs px-3 py-1 rounded-full">Menunggu Review</span>
+                    <span class="bg-purple-50 text-purple-700 font-bold text-xs px-3 py-1 rounded-full">
+                        <?php echo count($submission_sore); ?> Berkas Masuk
+                    </span>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -117,20 +189,52 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
                                 <th class="py-2.5">Judul Tugas</th>
                                 <th class="py-2.5">File Dikirim</th>
                                 <th class="py-2.5">Waktu Kirim</th>
+                                <th class="py-2.5 text-center">Status</th>
                                 <th class="py-2.5 text-center">Aksi Mentor</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50 text-gray-700">
-                            <tr class="hover:bg-gray-50/50 transition">
-                                <td class="py-3 font-bold text-gray-800">M. Yusman Bayuga</td>
-                                <td class="py-3">Revisi BAB II</td>
-                                <td class="py-3"><a href="#" class="text-blue-600 font-semibold hover:underline">📝 bab2_revisi_bayuga.docx</a></td>
-                                <td class="py-3 text-gray-500">15:22 WIB</td>
-                                <td class="py-3 text-center space-x-1.5">
-                                    <button onclick="prosesApproval('2', 'M. Yusman Bayuga', 'Setujui')" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl transition">Setujui</button>
-                                    <button onclick="prosesApproval('2', 'M. Yusman Bayuga', 'Revisi')" class="bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl transition">Minta Revisi</button>
-                                </td>
-                            </tr>
+                            <?php if (!empty($submission_sore)): ?>
+                                <?php foreach ($submission_sore as $ss): 
+                                    $file_path = "../uploads/tugas_mahasiswa/" . htmlspecialchars($ss['file_balasan']);
+                                    $has_file  = !empty($ss['file_balasan']) && file_exists($file_path);
+
+                                    $status_class = 'bg-amber-50 text-amber-600';
+                                    if ($ss['status_approval'] === 'Disetujui') $status_class = 'bg-emerald-50 text-emerald-600';
+                                    elseif ($ss['status_approval'] === 'Perlu Revisi') $status_class = 'bg-rose-50 text-rose-600';
+                                ?>
+                                    <tr class="hover:bg-gray-50/50 transition">
+                                        <td class="py-3">
+                                            <p class="font-bold text-gray-800"><?php echo htmlspecialchars($ss['nama_user']); ?></p>
+                                            <p class="text-[10px] text-gray-400"><?php echo htmlspecialchars($ss['nim']); ?></p>
+                                        </td>
+                                        <td class="py-3 font-semibold text-gray-700 max-w-xs truncate"><?php echo htmlspecialchars($ss['judul_tugas']); ?></td>
+                                        <td class="py-3">
+                                            <?php if ($has_file): ?>
+                                                <a href="<?php echo $file_path; ?>" download class="text-blue-600 font-semibold hover:underline flex items-center gap-1">
+                                                    📝 <?php echo htmlspecialchars($ss['file_balasan']); ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-gray-300 italic">Berkas tidak ditemukan</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="py-3 text-gray-500"><?php echo date('H:i', strtotime($ss['waktu_kirim'])); ?> WIB</td>
+                                        <td class="py-3 text-center">
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold <?php echo $status_class; ?>">
+                                                <?php echo htmlspecialchars($ss['status_approval']); ?>
+                                            </span>
+                                        </td>
+                                        <td class="py-3 text-center space-x-1.5">
+                                            <button onclick="prosesApproval('<?php echo $ss['id']; ?>', '<?php echo addslashes($ss['nama_user']); ?>', 'Setujui')" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl transition">Setujui</button>
+                                            <button onclick="prosesApproval('<?php echo $ss['id']; ?>', '<?php echo addslashes($ss['nama_user']); ?>', 'Revisi')" class="bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl transition">Minta Revisi</button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="6" class="py-6 text-center text-gray-400 font-medium">Belum ada tugas masuk di sesi sore.</td>
+                                </tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -147,7 +251,11 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
         <input type="hidden" name="catatan_mentor" id="postCatatanMentor">
     </form>
 
-    <?php include '../components/alert.php'; ?>
+    <?php 
+    if (file_exists(__DIR__ . '/../components/alert.php')) {
+        include __DIR__ . '/../components/alert.php';
+    } 
+    ?>
 
     <script>
         function prosesApproval(id, nama, jenis) {

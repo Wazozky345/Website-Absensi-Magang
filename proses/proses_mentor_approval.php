@@ -40,24 +40,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Update Status Approval dan Catatan Penilaian
     $stmt = $conn->prepare("UPDATE tugas_detail SET status_approval = ?, catatan_mentor = ?, updated_at = NOW() WHERE id = ?");
-    $stmt->bind_param("ssi", $keputusan, $catatan_mentor, $id_tugas_detail);
+    if ($stmt) {
+        $stmt->bind_param("ssi", $keputusan, $catatan_mentor, $id_tugas_detail);
 
-    if ($stmt->execute()) {
-        $pesan_status = ($keputusan === 'Disetujui') ? 'Tugas mahasiswa berhasil disetujui.' : 'Instruksi revisi telah dikirim ke mahasiswa.';
-        $_SESSION['alert'] = [
-            'type' => 'success',
-            'title' => 'Keputusan Disimpan!',
-            'message' => $pesan_status
-        ];
+        if ($stmt->execute()) {
+            $pesan_status = ($keputusan === 'Disetujui') ? 'Tugas mahasiswa berhasil disetujui.' : 'Instruksi revisi telah dikirim ke mahasiswa.';
+            $_SESSION['alert'] = [
+                'type' => 'success',
+                'title' => 'Keputusan Disimpan!',
+                'message' => $pesan_status
+            ];
+        } else {
+            $_SESSION['alert'] = [
+                'type' => 'error',
+                'title' => 'Gagal Memproses',
+                'message' => 'Terjadi kesalahan sistem saat memperbarui keputusan.'
+            ];
+        }
+
+        $stmt->close();
     } else {
         $_SESSION['alert'] = [
             'type' => 'error',
-            'title' => 'Gagal Memproses',
-            'message' => 'Terjadi kesalahan sistem saat memperbarui keputusan.'
+            'title' => 'Gagal Query Database',
+            'message' => 'Kesalahan SQL: ' . $conn->error
         ];
     }
 
-    $stmt->close();
     header("Location: ../mentor/approval.php");
     exit;
 }
