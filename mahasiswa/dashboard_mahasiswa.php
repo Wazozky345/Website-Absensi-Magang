@@ -1,25 +1,6 @@
 <?php
 // Memanggil backend handler proses_dashboard.php dari folder proses/
 require_once __DIR__ . '/../proses/proses_dashboard.php';
-
-// DETEKSI NOTIFIKASI TUGAS AKTIF / REVISI DARI MENTOR
-$user_id_aktif = $_SESSION['user_id'] ?? 1;
-$tugas_baru_masuk = null;
-
-if (isset($conn)) {
-    $q_tugas = $conn->query("
-        SELECT t.*, m.nama_mentor, td.status_approval, td.catatan_mentor, td.file_balasan
-        FROM tugas t
-        JOIN mentors m ON t.mentor_id = m.id
-        LEFT JOIN tugas_detail td ON t.id = td.tugas_id AND td.user_id = '$user_id_aktif'
-        WHERE (t.target_user_id IS NULL OR t.target_user_id = '$user_id_aktif')
-          AND (td.status_approval IS NULL OR td.status_approval = 'Belum Ada Berkas' OR td.status_approval = 'Perlu Revisi')
-        ORDER BY t.created_at DESC LIMIT 1
-    ");
-    if ($q_tugas && $q_tugas->num_rows > 0) {
-        $tugas_baru_masuk = $q_tugas->fetch_assoc();
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="id">
