@@ -1,6 +1,25 @@
 <?php
 // Memanggil backend handler proses_dashboard.php dari folder proses/
 require_once __DIR__ . '/../proses/proses_dashboard.php';
+
+// DETEKSI NOTIFIKASI TUGAS AKTIF / REVISI DARI MENTOR
+$user_id_aktif = $_SESSION['user_id'] ?? 1;
+$tugas_baru_masuk = null;
+
+if (isset($conn)) {
+    $q_tugas = $conn->query("
+        SELECT t.*, m.nama_mentor, td.status_approval, td.catatan_mentor, td.file_balasan
+        FROM tugas t
+        JOIN mentors m ON t.mentor_id = m.id
+        LEFT JOIN tugas_detail td ON t.id = td.tugas_id AND td.user_id = '$user_id_aktif'
+        WHERE (t.target_user_id IS NULL OR t.target_user_id = '$user_id_aktif')
+          AND (td.status_approval IS NULL OR td.status_approval = 'Belum Ada Berkas' OR td.status_approval = 'Perlu Revisi')
+        ORDER BY t.created_at DESC LIMIT 1
+    ");
+    if ($q_tugas && $q_tugas->num_rows > 0) {
+        $tugas_baru_masuk = $q_tugas->fetch_assoc();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -306,6 +325,92 @@ require_once __DIR__ . '/../proses/proses_dashboard.php';
         </div>
     </main>
 
+    <!-- TOMBOL FLOATING MELAYANG (PEMICU LIST TUGAS) -->
+    <?php if ($tugas_baru_masuk): ?>
+        <?php 
+            $is_revisi = ($tugas_baru_masuk['status_approval'] === 'Perlu Revisi');
+            $bg_btn    = $is_revisi ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-300' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-300';
+            $label_btn = $is_revisi ? 'Revisi Tugas' : 'Tugas Mentor';
+        ?>
+        <button type="button" onclick="openModalTugas()" class="fixed bottom-6 right-6 z-40 <?php echo $bg_btn; ?> text-white font-bold px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95 border-2 border-white">
+            <span class="text-base"><?php echo $is_revisi ? '✏️' : '📋'; ?></span>
+            <span class="text-xs"><?php echo $label_btn; ?></span>
+            <span class="w-2.5 h-2.5 bg-rose-400 rounded-full animate-pulse"></span>
+        </button>
+    <?php endif; ?>
+
+    <!-- POP-UP MODAL TUGAS MENTOR -->
+    <?php if ($tugas_baru_masuk): ?>
+    <?php 
+        $is_revisi = ($tugas_baru_masuk['status_approval'] === 'Perlu Revisi');
+        $judul_header = $is_revisi ? '⚠️ Revisi Tugas Diperlukan' : '📋 Penugasan Baru dari Mentor';
+    ?>
+    <div id="modalTugasContainer" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 transition-all">
+        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300" id="modalTugasContent">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div>
+                    <h3 class="text-base font-bold text-gray-800"><?php echo $judul_header; ?></h3>
+                    <p class="text-xs text-gray-400">Instruksi dari <?php echo htmlspecialchars($tugas_baru_masuk['nama_mentor']); ?></p>
+                </div>
+                <button onclick="closeModalTugas()" class="text-gray-400 hover:text-gray-600 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form method="POST" action="../proses/proses_upload_tugas.php" enctype="multipart/form-data" class="p-6 space-y-4">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                <input type="hidden" name="tugas_id" value="<?php echo $tugas_baru_masuk['id']; ?>">
+
+                <div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-bold bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full">Tugas #<?php echo $tugas_baru_masuk['id']; ?></span>
+                        <span class="text-[10px] text-rose-500 font-bold">Tenggat: <?php echo date('d M Y, H:i', strtotime($tugas_baru_masuk['tenggat'])); ?> WIB</span>
+                    </div>
+                    <h4 class="text-base font-bold text-gray-800 mt-2"><?php echo htmlspecialchars($tugas_baru_masuk['judul_tugas']); ?></h4>
+                    <p class="text-xs text-gray-500 mt-1 leading-relaxed bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                        <?php echo nl2br(htmlspecialchars($tugas_baru_masuk['deskripsi'] ?? 'Tidak ada deskripsi tambahan.')); ?>
+                    </p>
+                </div>
+
+                <?php if (!empty($tugas_baru_masuk['file_lampiran'])): ?>
+                    <div class="flex items-center justify-between bg-emerald-50/60 border border-emerald-200/60 p-3 rounded-2xl">
+                        <span class="text-xs font-bold text-emerald-800 flex items-center gap-2">
+                            📎 Lampiran Instruksi Mentor
+                        </span>
+                        <a href="../uploads/tugas_mentor/<?php echo htmlspecialchars($tugas_baru_masuk['file_lampiran']); ?>" download class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl hover:bg-emerald-700 transition">
+                            Unduh File
+                        </a>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (!empty($tugas_baru_masuk['catatan_mentor'])): ?>
+                    <div class="bg-rose-50 border border-rose-200 p-3 rounded-2xl">
+                        <span class="text-xs font-bold text-rose-700 block mb-1">💬 Catatan Revisi Mentor:</span>
+                        <p class="text-xs text-rose-600 leading-relaxed"><?php echo htmlspecialchars($tugas_baru_masuk['catatan_mentor']); ?></p>
+                    </div>
+                <?php endif; ?>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">Pilih Berkas Balasan Tugas <span class="text-rose-500">*</span></label>
+                    <input type="file" name="file_balasan" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-3 text-xs text-gray-700 focus:outline-none focus:border-blue-500">
+                    <p class="text-[10px] text-gray-400 mt-1">Format didukung: PDF, DOCX, XLSX, ZIP (Maks 10MB)</p>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                    <button type="button" onclick="closeModalTugas()" class="px-4 py-2.5 rounded-2xl text-xs font-bold text-gray-500 hover:bg-gray-100 transition">
+                        Tutup / Nanti
+                    </button>
+                    <button type="submit" name="submit_tugas" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-2xl shadow-lg shadow-blue-200 transition text-xs">
+                        Kirim Berkas Tugas
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- MODAL LOGBOOK -->
     <div id="logbookModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 transition-all">
         <div class="bg-white rounded-3xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden transform transition-all scale-95 opacity-0 duration-300" id="modalContent">
@@ -357,6 +462,33 @@ require_once __DIR__ . '/../proses/proses_dashboard.php';
     <script src="../assets/script.js?v=<?php echo time(); ?>"></script>
 
     <script>
+        // FUNCTION MODAL POPUP UNTUK TUGAS MENTOR
+        function openModalTugas() {
+            const modal = document.getElementById('modalTugasContainer');
+            const content = document.getElementById('modalTugasContent');
+            if (!modal || !content) return;
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeModalTugas() {
+            const modal = document.getElementById('modalTugasContainer');
+            const content = document.getElementById('modalTugasContent');
+            if (!modal || !content) return;
+
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // FUNCTION MODAL LOGBOOK KEHADIRAN
         function openModalLogbook(btn) {
             const id = btn.getAttribute('data-id');
             const tanggal = btn.getAttribute('data-tanggal');
@@ -396,6 +528,15 @@ require_once __DIR__ . '/../proses/proses_dashboard.php';
                 modal.classList.add('hidden');
             }, 300);
         }
+
+        // AUTO OPEN POP-UP JIKA ADA TUGAS BARU / REVISI DARI MENTOR
+        document.addEventListener('DOMContentLoaded', () => {
+            <?php if ($tugas_baru_masuk): ?>
+                setTimeout(() => {
+                    openModalTugas();
+                }, 400);
+            <?php endif; ?>
+        });
     </script>
 
     <?php include __DIR__ . '/../components/alert.php'; ?>
