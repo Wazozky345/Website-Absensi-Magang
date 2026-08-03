@@ -228,6 +228,31 @@ if ($query_grafik) {
 }
 $stmt_grafik->close();
 
-// Konversi array PHP menjadi string JSON agar bisa dibaca oleh JavaScript
 $json_grafik_hadir = json_encode(array_values($data_grafik_hadir));
+
+// =========================================================================
+// 8. DETEKSI NOTIFIKASI TUGAS AKTIF / REVISI DARI MENTOR (DIPINDAH KE SINI)
+// =========================================================================
+$tugas_baru_masuk = null;
+
+$stmt_tugas = $conn->prepare("
+    SELECT t.*, m.nama_mentor, td.status_approval, td.catatan_mentor, td.file_balasan
+    FROM tugas t
+    JOIN mentors m ON t.mentor_id = m.id
+    LEFT JOIN tugas_detail td ON t.id = td.tugas_id AND td.user_id = ?
+    WHERE (t.target_user_id IS NULL OR t.target_user_id = ?)
+      AND (td.status_approval IS NULL OR td.status_approval = 'Belum Ada Berkas' OR td.status_approval = 'Perlu Revisi')
+    ORDER BY t.created_at DESC LIMIT 1
+");
+
+if ($stmt_tugas) {
+    $stmt_tugas->bind_param("ii", $user_id, $user_id);
+    $stmt_tugas->execute();
+    $res_tugas = $stmt_tugas->get_result();
+    
+    if ($res_tugas && $res_tugas->num_rows > 0) {
+        $tugas_baru_masuk = $res_tugas->fetch_assoc();
+    }
+    $stmt_tugas->close();
+}
 ?>
