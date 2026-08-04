@@ -47,7 +47,6 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                 </div>
                 <div class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                     <?php 
-                    // Membuat inisial nama mentor
                     $words = explode(' ', $nama_mentor);
                     echo count($words) >= 2 ? strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1)) : strtoupper(substr($nama_mentor, 0, 2));
                     ?>
@@ -57,7 +56,6 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
 
         <div class="p-4 md:p-8 space-y-6">
 
-            <!-- TATA LETAK 2 KOLOM WIREFRAME LAYAR 09 -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
                 <!-- KOLOM UTAMA (KIRI - 2 GRID SPAN) -->
@@ -70,7 +68,6 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                                 <h3 class="text-base font-bold text-gray-800">
                                     Kalender Bimbingan <?php echo $nama_bulan_map[$bulan_aktif] . ' ' . $tahun_aktif; ?>
                                 </h3>
-                                <!-- DROPDOWN FILTER BULAN (JULI - OKTOBER 2026) -->
                                 <select onchange="location = this.value;" class="bg-gray-50 border border-gray-200 text-xs font-bold rounded-xl px-3 py-1.5 text-gray-700 focus:outline-none cursor-pointer">
                                     <option value="bimbingan.php?bulan=07" <?php echo $bulan_aktif === '07' ? 'selected' : ''; ?>>Juli 2026</option>
                                     <option value="bimbingan.php?bulan=08" <?php echo $bulan_aktif === '08' ? 'selected' : ''; ?>>Agustus 2026</option>
@@ -86,13 +83,7 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
 
                         <!-- GRID 7 HARI -->
                         <div class="grid grid-cols-7 gap-1.5 text-center text-xs font-bold text-gray-400 mb-2">
-                            <div class="py-1">Sen</div>
-                            <div class="py-1">Sel</div>
-                            <div class="py-1">Rab</div>
-                            <div class="py-1">Kam</div>
-                            <div class="py-1">Jum</div>
-                            <div class="py-1 text-rose-400">Sab</div>
-                            <div class="py-1 text-rose-400">Min</div>
+                            <div class="py-1">Sen</div><div class="py-1">Sel</div><div class="py-1">Rab</div><div class="py-1">Kam</div><div class="py-1">Jum</div><div class="py-1 text-rose-400">Sab</div><div class="py-1 text-rose-400">Min</div>
                         </div>
 
                         <!-- GRID KALENDER INTERAKTIF -->
@@ -110,7 +101,6 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                                         $bg_card     = $is_revisi ? 'bg-rose-50/80 border-rose-400 text-rose-600' : 'bg-blue-50/80 border-blue-400 text-blue-600';
                                         $badge_color = $is_revisi ? 'bg-rose-500' : 'bg-blue-600';
 
-                                        // Inisial Nama Mahasiswa
                                         $words = explode(' ', $bm['nama_user']);
                                         $inisial = count($words) >= 2 ? strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1)) : strtoupper(substr($bm['nama_user'], 0, 2));
 
@@ -133,7 +123,6 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                                         </div>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <!-- SEL KOSONG: KLIK UNTUK TAMBAH BIMBINGAN BARU -->
                                     <div class="min-h-[64px] bg-white border border-gray-100 rounded-xl p-1 text-[11px] hover:border-blue-300 transition cursor-pointer flex flex-col justify-between"
                                          onclick="bukaDetailForm('create', 0, 1, '', '', '<?php echo $tgl_full; ?>', '', 'Tatap Muka', 'Terjadwal', '')">
                                         <span class="font-bold text-gray-400"><?php echo $d; ?></span>
@@ -153,14 +142,12 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                             <span class="text-xs bg-blue-50 text-blue-600 font-bold px-3 py-1 rounded-full" id="labelMahasiswaNIM">NIM: -</span>
                         </div>
 
-                        <!-- SUBMIT FORM KE PROSES MENTOR BIMBINGAN -->
                         <form method="POST" action="../proses/proses_mentor_bimbingan.php" id="formBimbingan" class="space-y-4">
                             <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                             <input type="hidden" name="action" id="inputAction" value="save">
                             <input type="hidden" name="bimbingan_id" id="inputBimbinganId" value="0">
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <!-- PILIH MAHASISWA -->
                                 <div>
                                     <label class="block text-xs font-bold text-gray-700 mb-1.5">Mahasiswa Bimbingan <span class="text-rose-500">*</span></label>
                                     <select name="user_id" id="selectUserId" onchange="updateSelectedStudentInfo()" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-blue-500 font-medium text-gray-800">
@@ -171,8 +158,6 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
-
-                                <!-- TANGGAL & WAKTU -->
                                 <div>
                                     <label class="block text-xs font-bold text-gray-700 mb-1.5">Tanggal & Waktu Sesi <span class="text-rose-500">*</span></label>
                                     <input type="datetime-local" name="waktu_sesi" id="inputWaktuSesi" value="<?php echo date('Y-m-d\TH:i'); ?>" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-blue-500 font-medium text-gray-800">
@@ -180,13 +165,10 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <!-- TOPIK / AGENDA -->
                                 <div class="sm:col-span-2">
                                     <label class="block text-xs font-bold text-gray-700 mb-1.5">Topik / Agenda Bimbingan <span class="text-rose-500">*</span></label>
                                     <input type="text" name="topik" id="inputTopik" required placeholder="Contoh: Review BAB II - Kajian Pustaka" class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-blue-500 font-medium text-gray-800">
                                 </div>
-
-                                <!-- STATUS SESI -->
                                 <div>
                                     <label class="block text-xs font-bold text-gray-700 mb-1.5">Status Bimbingan</label>
                                     <select name="status_tipe" id="selectStatusTipe" class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-blue-500 font-medium text-gray-800">
@@ -197,7 +179,6 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                                 </div>
                             </div>
 
-                            <!-- METODE -->
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 mb-1.5">Metode Pelaksanaan</label>
                                 <div class="flex items-center gap-3">
@@ -210,13 +191,11 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                                 </div>
                             </div>
 
-                            <!-- CATATAN REVISI -->
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 mb-1.5">Catatan Revisi & Instruksi <span class="text-rose-500">*</span></label>
                                 <textarea name="catatan" id="inputCatatan" rows="4" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs focus:outline-none focus:border-blue-500 transition text-gray-800 resize-none placeholder-gray-400 leading-relaxed" placeholder="Tuliskan rincian perbaikan bab, poin evaluasi, atau batas waktu revisi..."></textarea>
                             </div>
 
-                            <!-- TOMBOL AKSI CRUD -->
                             <div class="flex items-center justify-between pt-2">
                                 <button type="button" id="btnHapusBimbingan" onclick="konfirmasiHapus()" class="hidden bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold px-5 py-2.5 rounded-2xl text-xs transition">
                                     Hapus Jadwal
@@ -237,35 +216,18 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                 </div>
 
                 <!-- KOLOM KANAN (RIWAYAT REVISI MAHASISWA TERPILIH) -->
-                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-5">
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-5 h-fit sticky top-24">
                     <div class="pb-3 border-b border-gray-100 flex justify-between items-center">
                         <div>
                             <h3 class="text-base font-bold text-gray-800">Riwayat Revisi</h3>
-                            <p class="text-[11px] text-gray-400" id="labelTimelineNama">Alvin Nurfaiz</p>
+                            <p class="text-[11px] text-gray-400" id="labelTimelineNama">-</p>
                         </div>
                         <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-bold">Timeline</span>
                     </div>
 
-                    <div class="space-y-4" id="containerTimeline">
-                        <div class="relative pl-4 border-l-2 border-blue-500 space-y-1">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-gray-800">28 Jun 2026</span>
-                                <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-bold">BAB I</span>
-                            </div>
-                            <p class="text-xs text-gray-600 leading-relaxed">
-                                Perbaiki rumusan masalah, tambahkan batasan penelitian sesuai template UAS.
-                            </p>
-                        </div>
-
-                        <div class="relative pl-4 border-l-2 border-gray-200 space-y-1">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-gray-800">15 Jun 2026</span>
-                                <span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-medium">Proposal Awal</span>
-                            </div>
-                            <p class="text-xs text-gray-500 leading-relaxed">
-                                Lengkapi identitas dosen pembimbing (NIP/NIDN) pada halaman sampul.
-                            </p>
-                        </div>
+                    <!-- KONTINER TIMELINE (Akan diisi Javascript) -->
+                    <div class="space-y-4 max-h-[500px] overflow-y-auto pr-2" id="containerTimeline">
+                        <!-- Data di-render disini -->
                     </div>
                 </div>
 
@@ -276,6 +238,9 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
 
     <!-- SCRIPT INTERAKTIF CONTROLLER -->
     <script>
+        // Tangkap JSON timeline dari backend PHP
+        const timelineDataDB = <?php echo $json_timeline; ?>;
+
         function updateMetodeStyle(metode) {
             const lblTatapMuka = document.getElementById('lblMetodeTatapMuka');
             const lblOnline    = document.getElementById('lblMetodeOnline');
@@ -291,16 +256,45 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
             }
         }
 
+        // FUNGSI SUPER MAGIC: MERENDER TIMELINE BERDASARKAN USER YANG DIPILIH
         function updateSelectedStudentInfo() {
             const select = document.getElementById('selectUserId');
             if (!select || select.options.length === 0) return;
 
             const selectedOption = select.options[select.selectedIndex];
+            const userId = select.value;
             const nama = selectedOption.getAttribute('data-nama') || selectedOption.text.split(' (')[0];
             const nim  = selectedOption.getAttribute('data-nim')  || '-';
 
+            // Update Label Nama & NIM
             document.getElementById('labelMahasiswaNIM').innerText  = "NIM: " + nim;
             document.getElementById('labelTimelineNama').innerText  = nama;
+
+            // Render Ulang Timeline
+            const container = document.getElementById('containerTimeline');
+            container.innerHTML = ''; // Bersihkan timeline lama
+
+            if (timelineDataDB[userId] && timelineDataDB[userId].length > 0) {
+                timelineDataDB[userId].forEach(item => {
+                    let borderColor = item.status === 'Revisi' ? 'border-rose-400' : 'border-blue-400';
+                    let badgeBg     = item.status === 'Revisi' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600';
+                    
+                    let html = `
+                        <div class="relative pl-4 border-l-2 ${borderColor} space-y-1 mb-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-gray-800">${item.tanggal}</span>
+                                <span class="text-[10px] ${badgeBg} px-2 py-0.5 rounded-md font-bold truncate max-w-[100px]">${item.topik}</span>
+                            </div>
+                            <p class="text-xs text-gray-600 leading-relaxed">
+                                ${item.catatan || 'Tidak ada catatan.'}
+                            </p>
+                        </div>
+                    `;
+                    container.innerHTML += html;
+                });
+            } else {
+                container.innerHTML = '<p class="text-xs text-gray-400 italic">Belum ada riwayat bimbingan atau revisi.</p>';
+            }
         }
 
         function bukaDetailForm(mode, id, userId, nama, nim, waktu, topik, metode, status, catatan) {
@@ -323,7 +317,7 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
 
             if (userId) {
                 document.getElementById('selectUserId').value = userId;
-                updateSelectedStudentInfo();
+                updateSelectedStudentInfo(); // Panggil ulang render timeline
             }
 
             if (waktu) document.getElementById('inputWaktuSesi').value = waktu;
@@ -363,7 +357,7 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            updateSelectedStudentInfo();
+            updateSelectedStudentInfo(); // Render timeline saat halaman pertama kali dibuka
         });
     </script>
 
@@ -374,5 +368,4 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
     ?>
 
 </body>
-
 </html>
