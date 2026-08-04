@@ -1,79 +1,6 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-require_once __DIR__ . '/../config/koneksi.php';
-
-// Proteksi Hak Akses Role Mentor
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'mentor') {
-    header("Location: ../login-mentor.php");
-    exit;
-}
-
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-$mentor_id   = $_SESSION['user_id'] ?? 1;
-$nama_mentor = $_SESSION['nama_user'] ?? 'Dr. Alvin Nurfaiz, M.T.';
-
-// 1. LOGIKA BULAN AKTIF & KALENDER (JULI - OKTOBER 2026)
-$bulan_aktif = isset($_GET['bulan']) ? sprintf('%02d', intval($_GET['bulan'])) : '08'; // Default Agustus 2026
-$tahun_aktif = '2026';
-
-$nama_bulan_map = [
-    '07' => 'Juli',
-    '08' => 'Agustus',
-    '09' => 'September',
-    '10' => 'Oktober'
-];
-
-if (!isset($nama_bulan_map[$bulan_aktif])) {
-    $bulan_aktif = '08';
-}
-
-// Menhitung total hari & slot kosong kalender (Senin - Minggu)
-$first_day_timestamp = strtotime("$tahun_aktif-$bulan_aktif-01");
-$total_hari          = date('t', $first_day_timestamp);
-$day_of_week         = date('N', $first_day_timestamp); // 1 (Senin) - 7 (Minggu)
-$slot_kosong         = $day_of_week - 1;
-
-// 2. AMBIL DAFTAR MAHASISWA BIMBINGAN
-$mahasiswa_list = [];
-$q_mhs = $conn->query("SELECT id, nama_user, nim FROM users ORDER BY nama_user ASC");
-if ($q_mhs && $q_mhs->num_rows > 0) {
-    while ($m = $q_mhs->fetch_assoc()) {
-        $mahasiswa_list[] = $m;
-    }
-} else {
-    $mahasiswa_list = [
-        ['id' => 1, 'nama_user' => 'Alvin Nurfaiz', 'nim' => '232101111'],
-        ['id' => 2, 'nama_user' => 'M. Yusman Bayuga', 'nim' => '232101145']
-    ];
-}
-
-// 3. AMBIL DATA BIMBINGAN DARI DATABASE UNTUK BULAN AKTIF
-$bimbingan_db = [];
-$q_bimb = $conn->query("
-    SELECT b.*, u.nama_user, u.nim 
-    FROM bimbingan b 
-    LEFT JOIN users u ON b.user_id = u.id 
-    WHERE b.mentor_id = '$mentor_id' 
-      AND MONTH(b.tanggal_waktu) = '$bulan_aktif' 
-      AND YEAR(b.tanggal_waktu) = '$tahun_aktif'
-    ORDER BY b.tanggal_waktu ASC
-");
-
-if ($q_bimb && $q_bimb->num_rows > 0) {
-    while ($b = $q_bimb->fetch_assoc()) {
-        $tgl_d = intval(date('j', strtotime($b['tanggal_waktu'])));
-        $bimbingan_db[$tgl_d][] = $b;
-    }
-}
+// Murni memanggil otak proses_mentor_bimbingan.php
+require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -119,7 +46,11 @@ if ($q_bimb && $q_bimb->num_rows > 0) {
                     <p class="text-[10px] text-gray-400">Pembimbing Lapangan</p>
                 </div>
                 <div class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                    DM
+                    <?php 
+                    // Membuat inisial nama mentor
+                    $words = explode(' ', $nama_mentor);
+                    echo count($words) >= 2 ? strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1)) : strtoupper(substr($nama_mentor, 0, 2));
+                    ?>
                 </div>
             </div>
         </header>
@@ -368,7 +299,6 @@ if ($q_bimb && $q_bimb->num_rows > 0) {
             const nama = selectedOption.getAttribute('data-nama') || selectedOption.text.split(' (')[0];
             const nim  = selectedOption.getAttribute('data-nim')  || '-';
 
-            document.getElementById('labelMahasiswaNama').innerText = nama;
             document.getElementById('labelMahasiswaNIM').innerText  = "NIM: " + nim;
             document.getElementById('labelTimelineNama').innerText  = nama;
         }
