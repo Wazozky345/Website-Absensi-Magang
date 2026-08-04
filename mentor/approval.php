@@ -1,47 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-require_once __DIR__ . '/../config/koneksi.php';
-
-// Proteksi Hak Akses Role Mentor
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'mentor') {
-    header("Location: ../login-mentor.php");
-    exit;
-}
-
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-$mentor_id   = $_SESSION['user_id'];
-$nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
-
-// AMBIL SEMUA DATA SUBMISSION MAHASISWA DARI DATABASE
-$submission_pagi = [];
-$submission_sore = [];
-
-$query_submission = $conn->query("
-    SELECT td.*, t.judul_tugas, u.nama_user, u.nim, u.kelas
-    FROM tugas_detail td
-    JOIN tugas t ON td.tugas_id = t.id
-    JOIN users u ON td.user_id = u.id
-    WHERE t.mentor_id = '$mentor_id'
-    ORDER BY td.waktu_kirim DESC
-");
-
-if ($query_submission && $query_submission->num_rows > 0) {
-    while ($row = $query_submission->fetch_assoc()) {
-        $jam_kirim = date('H:i:s', strtotime($row['waktu_kirim']));
-        // Pengelompokan Batch berdasarkan Sesi atau Jam Kirim
-        if ($row['sesi_batch'] === 'Pagi' || $jam_kirim <= '12:00:00') {
-            $submission_pagi[] = $row;
-        } else {
-            $submission_sore[] = $row;
-        }
-    }
-}
+// Memanggil otak proses_mentor_approval.php
+require_once __DIR__ . '/../proses/proses_mentor_approval.php';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -304,7 +263,25 @@ if ($query_submission && $query_submission->num_rows > 0) {
                 });
             }
         }
+
+        // SCRIPT DRAWER MOBILE
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+            const toggleSidebar = () => {
+                if (sidebar && sidebarOverlay) {
+                    sidebar.classList.toggle('-translate-x-full');
+                    sidebarOverlay.classList.toggle('hidden');
+                }
+            };
+
+            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleSidebar);
+            if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+        });
     </script>
 </body>
-
 </html>
