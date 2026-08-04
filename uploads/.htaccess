@@ -1,0 +1,15 @@
+# Mematikan fungsi eksekusi skrip PHP/CGI di dalam folder ini
+# Hacker tidak akan bisa mengeksekusi shell/malware meskipun berhasil mengunggahnya
+<FilesMatch "\.(php|php5|php4|php3|phtml|phpt|cgi|pl|py)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Mencegah orang asing melihat daftar file (directory listing)
+Options -Indexes
+
+# Paksa file untuk di-download, bukan dijalankan di browser
+<FilesMatch "\.(pdf|docx|xlsx|pptx)$">
+    ForceType application/octet-stream
+    Header set Content-Disposition attachment
+</FilesMatch>
