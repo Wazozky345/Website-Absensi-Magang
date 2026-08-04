@@ -11,6 +11,16 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
     exit;
 }
 
+$mentor_id   = $_SESSION['user_id'];
+$nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// =========================================================================
+// 1. LOGIKA PENERIMAAN AKSI (POST) - SETUJUI / REVISI TUGAS
+// =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validasi CSRF Token
@@ -70,3 +80,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header("Location: ../mentor/approval.php");
     exit;
 }
+
+// =========================================================================
+// 2. LOGIKA PENYEDIAAN DATA VIEW (GET) - TABEL APPROVAL
+// =========================================================================
+$submission_pagi = [];
+$submission_sore = [];
+
+$query_submission = $conn->query("
+    SELECT td.*, t.judul_tugas, u.nama_user, u.nim, u.kelas
+    FROM tugas_detail td
+    JOIN tugas t ON td.tugas_id = t.id
+    JOIN users u ON td.user_id = u.id
+    WHERE t.mentor_id = '$mentor_id'
+    ORDER BY td.waktu_kirim DESC
+");
+
+if ($query_submission && $query_submission->num_rows > 0) {
+    while ($row = $query_submission->fetch_assoc()) {
+        $jam_kirim = date('H:i:s', strtotime($row['waktu_kirim']));
+        
+        // Pengelompokan Batch berdasarkan Sesi atau Jam Kirim
+        if ($row['sesi_batch'] === 'Pagi' || $jam_kirim <= '12:00:00') {
+            $submission_pagi[] = $row;
+        } else {
+            $submission_sore[] = $row;
+        }
+    }
+}
+?>
