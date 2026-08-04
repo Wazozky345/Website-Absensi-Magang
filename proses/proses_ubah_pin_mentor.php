@@ -2,127 +2,125 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
 require_once __DIR__ . '/../config/koneksi.php';
 
+// Pastikan yang mengakses adalah Mentor
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'mentor') {
+    header("Location: ../login-mentor.php");
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $redirect_back = $_SERVER['HTTP_REFERER'] ?? '../mentor/dashboard.php';
-
+    
     // 1. Validasi CSRF Token
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
         $_SESSION['alert'] = [
-            'type' => 'error',
-            'title' => 'Sesi Berakhir',
-            'message' => 'Token keamanan tidak valid. Silakan muat ulang halaman.'
+            'type' => 'error', 
+            'title' => 'Sesi Berakhir', 
+            'message' => 'Permintaan tidak valid. Silakan coba lagi.'
         ];
-        header("Location: " . $redirect_back);
+        header("Location: ../mentor/dashboard.php");
         exit;
     }
 
-    // 2. Proteksi Harus Sesi Mentor Logged In
-    $user_id = $_SESSION['user_id'] ?? null;
-    if (!$user_id) {
-        $_SESSION['alert'] = [
-            'type' => 'error',
-            'title' => 'Akses Ditolak',
-            'message' => 'Sesi Anda telah habis. Silakan login kembali.'
-        ];
-        header("Location: ../login-mentor.php");
-        exit;
-    }
+    $mentor_id      = $_SESSION['user_id'];
+    $pin_lama       = $_POST['pin_lama'] ?? '';
+    $pin_baru       = $_POST['pin_baru'] ?? '';
+    $konfirmasi_pin = $_POST['konfirmasi_pin'] ?? '';
 
-    $pin_lama       = trim($_POST['pin_lama'] ?? '');
-    $pin_baru       = trim($_POST['pin_baru'] ?? '');
-    $konfirmasi_pin = trim($_POST['konfirmasi_pin'] ?? '');
-
-    // 3. Validasi Input Tidak Boleh Kosong
+    // 2. Validasi Input Kosong
     if (empty($pin_lama) || empty($pin_baru) || empty($konfirmasi_pin)) {
         $_SESSION['alert'] = [
-            'type' => 'warning',
-            'title' => 'Data Belum Lengkap',
-            'message' => 'Harap isi semua kolom form ubah PIN.'
+            'type' => 'warning', 
+            'title' => 'Input Tidak Lengkap', 
+            'message' => 'Semua kolom PIN wajib diisi!'
         ];
-        header("Location: " . $redirect_back);
+        header("Location: ../mentor/dashboard.php");
         exit;
     }
 
-    // 4. Validasi Format PIN Harus 4 Digit Angka
-    if (!preg_match('/^[0-9]{4}$/', $pin_baru)) {
-        $_SESSION['alert'] = [
-            'type' => 'warning',
-            'title' => 'Format PIN Salah',
-            'message' => 'PIN Baru harus terdiri dari 4 digit angka.'
-        ];
-        header("Location: " . $redirect_back);
-        exit;
-    }
-
-    // 5. Validasi Kesesuaian PIN Baru
+    // 3. Validasi Kesamaan PIN Baru
     if ($pin_baru !== $konfirmasi_pin) {
         $_SESSION['alert'] = [
-            'type' => 'error',
-            'title' => 'PIN Tidak Cocok',
-            'message' => 'Konfirmasi PIN Baru tidak cocok dengan PIN Baru.'
+            'type' => 'error', 
+            'title' => 'PIN Tidak Cocok', 
+            'message' => 'Konfirmasi PIN baru tidak sesuai dengan PIN baru yang dimasukkan!'
         ];
-        header("Location: " . $redirect_back);
+        header("Location: ../mentor/dashboard.php");
         exit;
     }
 
-    // 6. Cek & Verifikasi PIN Lama di Database
-    $stmt = $conn->prepare("SELECT pin, password FROM mentors WHERE id = ?");
-    if (!$stmt) {
-        $stmt = $conn->prepare("SELECT pin, password FROM users WHERE id = ? AND role = 'mentor'");
+    // 4. Validasi Format PIN (Wajib 4 Digit Angka)
+    if (!preg_match('/^[0-9]{4}$/', $pin_baru)) {
+        $_SESSION['alert'] = [
+            'type' => 'error', 
+            'title' => 'Format Salah', 
+            'message' => 'PIN baru wajib terdiri dari tepat 4 digit angka (0-9)!'
+        ];
+        header("Location: ../mentor/dashboard.php");
+        exit;
     }
 
-    if ($stmt) {
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
+    // 5. Cek PIN Lama di Database 
+    $stmt_cek = $conn->prepare("SELECT pin FROM mentors WHERE id = ? LIMIT 1");
+    if ($stmt_cek) {
+        $stmt_cek->bind_param("i", $mentor_id);
+        $stmt_cek->execute();
+        $result = $stmt_cek->get_result();
 
-        if ($result && $result->num_rows > 0) {
+        if ($result && $result->num_rows === 1) {
             $row = $result->fetch_assoc();
-            $pin_db = $row['pin'] ?? $row['password'];
+            $db_pin = $row['pin'];
 
-            $is_valid_old = (password_verify($pin_lama, $pin_db) || $pin_lama === $pin_db);
-
-            if ($is_valid_old) {
-                // Hash PIN Baru
-                $pin_baru_hashed = password_hash($pin_baru, PASSWORD_DEFAULT);
-
-                $stmt_upd = $conn->prepare("UPDATE mentors SET pin = ?, updated_at = NOW() WHERE id = ?");
-                if (!$stmt_upd) {
-                    $stmt_upd = $conn->prepare("UPDATE users SET pin = ?, updated_at = NOW() WHERE id = ? AND role = 'mentor'");
-                }
-
-                if ($stmt_upd) {
-                    $stmt_upd->bind_param("si", $pin_baru_hashed, $user_id);
-                    if ($stmt_upd->execute()) {
-                        $_SESSION['alert'] = [
-                            'type' => 'success',
-                            'title' => 'PIN Berhasil Diperbarui!',
-                            'message' => 'PIN 4-digit keamanan Anda telah berhasil diubah.'
-                        ];
-                    } else {
-                        $_SESSION['alert'] = [
-                            'type' => 'error',
-                            'title' => 'Gagal Memperbarui',
-                            'message' => 'Terjadi kesalahan sistem saat menyimpan PIN baru.'
-                        ];
-                    }
-                    $stmt_upd->close();
-                }
-            } else {
-                $_SESSION['alert'] = [
-                    'type' => 'error',
-                    'title' => 'PIN Lama Salah',
-                    'message' => 'PIN Lama yang Anda masukkan tidak sesuai.'
-                ];
+            // VERIFIKASI STRICT BCRYPT & PLAINTEXT FALLBACK
+            $pin_valid = false;
+            // Cek apakah PIN di database masih plaintext (telanjang) ATAU sudah di-hash pakai Bcrypt
+            if ($pin_lama === $db_pin || password_verify($pin_lama, $db_pin)) {
+                $pin_valid = true;
             }
+
+            if (!$pin_valid) {
+                $_SESSION['alert'] = [
+                    'type' => 'error', 
+                    'title' => 'Akses Ditolak', 
+                    'message' => 'PIN Lama yang Anda masukkan salah!'
+                ];
+                header("Location: ../mentor/dashboard.php");
+                exit;
+            }
+
+            // 6. Update dengan PIN Baru (MURNI BCRYPT PASSWORD_HASH)
+            $hash_pin_baru = password_hash($pin_baru, PASSWORD_DEFAULT);
+            $stmt_upd = $conn->prepare("UPDATE mentors SET pin = ? WHERE id = ?");
+            if ($stmt_upd) {
+                $stmt_upd->bind_param("si", $hash_pin_baru, $mentor_id);
+                
+                if ($stmt_upd->execute()) {
+                    $_SESSION['alert'] = [
+                        'type' => 'success', 
+                        'title' => 'Berhasil!', 
+                        'message' => 'PIN Keamanan Anda berhasil diubah. Gunakan PIN baru ini untuk login selanjutnya.'
+                    ];
+                } else {
+                    $_SESSION['alert'] = [
+                        'type' => 'error', 
+                        'title' => 'Gagal Menyimpan', 
+                        'message' => 'Terjadi kesalahan sistem saat menyimpan PIN baru.'
+                    ];
+                }
+                $stmt_upd->close();
+            }
+        } else {
+            $_SESSION['alert'] = [
+                'type' => 'error', 
+                'title' => 'Gagal', 
+                'message' => 'Data mentor tidak ditemukan di sistem.'
+            ];
         }
-        $stmt->close();
+        $stmt_cek->close();
     }
 
-    header("Location: " . $redirect_back);
+    header("Location: ../mentor/dashboard.php");
     exit;
 }
+?>
