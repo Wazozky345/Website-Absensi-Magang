@@ -4,6 +4,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Generasi CSRF Token jika belum ada
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // 2. Bersihkan sesi lama jika datang dari tombol ganti peran / index
 if (isset($_GET['switch']) || isset($_GET['reset'])) {
     unset($_SESSION['user_id'], $_SESSION['nama_user'], $_SESSION['username'], $_SESSION['nim'], $_SESSION['kelas'], $_SESSION['konsentrasi'], $_SESSION['role']);
@@ -28,21 +33,33 @@ if (!isset($_GET['switch']) && isset($_SESSION['user_id']) && isset($_SESSION['r
     <link rel="stylesheet" href="assets/style.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
 </head>
 
-<body class="flex min-h-screen items-center justify-center bg-[#F4F7FE] text-gray-800 select-none p-4">
+<body class="flex min-h-screen flex-col items-center justify-center bg-[#F4F7FE] text-gray-800 select-none p-4 relative">
 
-    <div class="w-full max-w-md relative">
+    <!-- TOP NAVIGATION BAR (TOMBOL DI SEBELAH KIRI) -->
+    <header class="fixed top-0 left-0 right-0 p-4 sm:p-6 flex justify-between items-center z-30">
+        <!-- TOMBOL GANTI PERAN MODERN (POJOK KIRI) -->
+        <a href="landing_page_utama.php" class="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md border border-gray-200 text-gray-600 hover:text-emerald-600 hover:border-emerald-200 font-bold text-xs rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Ganti Peran (Halaman Utama)
+        </a>
 
-        <!-- NAVIGASI KEMBALI KE LANDING PAGE (ROLE PICKER) -->
-        <div class="absolute -top-12 left-0">
-            <a href="index.php?switch=1" class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-emerald-600 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Ganti Peran (Halaman Utama)
-            </a>
+        <!-- INDIKATOR STATUS PORTAL (POJOK KANAN) -->
+        <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-bold text-gray-500 tracking-wider uppercase">Portal Pembimbing</span>
         </div>
+    </header>
+
+    <!-- CARD FORM LOGIN MENTOR -->
+    <div class="w-full max-w-md pt-16 z-10">
 
         <!-- HEADER UTAMA BRANDING -->
         <div class="text-center mb-8">
@@ -57,7 +74,7 @@ if (!isset($_GET['switch']) && isset($_SESSION['user_id']) && isset($_SESSION['r
             <p class="text-gray-500 font-medium text-sm">Portal Pembimbing & Evaluasi Magang</p>
         </div>
 
-        <!-- CARD FORM LOGIN MENTOR -->
+        <!-- BOX CONTAINER -->
         <div class="bg-white/95 backdrop-blur-md rounded-3xl p-8 shadow-xl border border-white">
             <div class="text-center mb-6">
                 <div class="w-16 h-16 bg-emerald-100/80 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
@@ -70,10 +87,8 @@ if (!isset($_GET['switch']) && isset($_SESSION['user_id']) && isset($_SESSION['r
             </div>
 
             <form method="POST" action="" class="space-y-5">
-                <!-- CSRF TOKEN -->
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
 
-                <!-- INPUT USERNAME -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-2">Username Mentor <span class="text-rose-500">*</span></label>
                     <div class="relative">
@@ -84,7 +99,6 @@ if (!isset($_GET['switch']) && isset($_SESSION['user_id']) && isset($_SESSION['r
                     </div>
                 </div>
 
-                <!-- INPUT PIN 4 DIGIT -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-2">PIN Keamanan (4 Digit) <span class="text-rose-500">*</span></label>
                     <div class="relative">
@@ -92,7 +106,6 @@ if (!isset($_GET['switch']) && isset($_SESSION['user_id']) && isset($_SESSION['r
                         <svg class="w-5 h-5 text-gray-400 absolute left-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                         </svg>
-                        <!-- EYE BUTTON TOGGLE -->
                         <button type="button" onclick="togglePinVisibility()" class="absolute right-4 top-3.5 text-gray-400 hover:text-emerald-600 transition" title="Lihat PIN">
                             <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -102,7 +115,6 @@ if (!isset($_GET['switch']) && isset($_SESSION['user_id']) && isset($_SESSION['r
                     </div>
                 </div>
 
-                <!-- REMEMBER ME CHECKBOX -->
                 <div class="flex items-center justify-between text-xs">
                     <label class="flex items-center gap-2 cursor-pointer text-gray-600 font-medium">
                         <input type="checkbox" name="remember" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300">
@@ -110,7 +122,6 @@ if (!isset($_GET['switch']) && isset($_SESSION['user_id']) && isset($_SESSION['r
                     </label>
                 </div>
 
-                <!-- TOMBOL SUBMIT -->
                 <button type="submit" name="submit_login_mentor" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-emerald-200 transition text-sm flex items-center justify-center gap-2">
                     Masuk Ke Portal Mentor
                 </button>

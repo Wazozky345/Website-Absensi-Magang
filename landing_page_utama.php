@@ -24,7 +24,7 @@
             <h1 class="text-xl font-bold tracking-wide">UTB Tracker</h1>
         </div>
         <div>
-            <span class="bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-semibold">Portal Mahasiswa</span>
+            <span class="bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-semibold">Portal Magang</span>
         </div>
     </nav>
 
@@ -48,11 +48,12 @@
 
         <!-- Container untuk Tombol-Tombol -->
         <div class="flex flex-col items-center gap-4">
-            <!-- Tombol Masuk Utama (Mengarah ke login.php) -->
-            <a href="login.php" class="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 text-white font-bold text-lg rounded-2xl shadow-lg shadow-blue-300 hover:bg-blue-700 hover:shadow-blue-400 hover:-translate-y-1 transition-all duration-300 w-full md:w-auto">
+            <!-- Tombol Masuk Utama (Mengarah ke index.php) -->
+            <a href="index.php" class="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 text-white font-bold text-lg rounded-2xl shadow-lg shadow-blue-300 hover:bg-blue-700 hover:shadow-blue-400 hover:-translate-y-1 transition-all duration-300 w-full md:w-auto">
                 Masuk ke Dashboard
                 <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
             </a>
+        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 text-left w-full">
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">

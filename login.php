@@ -3,6 +3,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Generasi CSRF Token jika belum ada
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Bersihkan variabel sesi jika mengakses dari tombol switch/reset
 if (isset($_GET['switch']) || isset($_GET['reset'])) {
     unset($_SESSION['user_id'], $_SESSION['nama_user'], $_SESSION['nim'], $_SESSION['kelas'], $_SESSION['konsentrasi'], $_SESSION['role']);
@@ -21,24 +26,35 @@ require_once __DIR__ . '/proses/proses_login.php';
     <link rel="stylesheet" href="assets/style.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
 </head>
 
-<body class="flex h-screen items-center justify-center bg-[#F4F7FE] text-gray-800 select-none p-4">
+<body class="flex min-h-screen items-center justify-center bg-[#F4F7FE] text-gray-800 select-none p-4 relative">
 
-    <div class="w-full max-w-3xl p-4 md:p-8 relative">
+    <!-- TOP NAVIGATION BAR (TOMBOL DI SEBELAH KIRI) -->
+    <header class="fixed top-0 left-0 right-0 p-4 sm:p-6 flex justify-between items-center z-30">
+        <!-- TOMBOL GANTI PERAN MODERN (POJOK KIRI) -->
+        <a href="landing_page_utama.php" class="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md border border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-200 font-bold text-xs rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Ganti Peran (Halaman Utama)
+        </a>
 
-        <!-- NAVIGASI KEMBALI KE LANDING PAGE (ROLE PICKER) -->
-        <div class="absolute top-0 left-8">
-            <a href="index.php?switch=1" class="inline-flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-blue-600 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Ganti Peran (Halaman Utama)
-            </a>
+        <!-- INDIKATOR STATUS PORTAL (POJOK KANAN) -->
+        <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+            <span class="text-xs font-bold text-gray-500 tracking-wider uppercase">Portal Mahasiswa</span>
         </div>
+    </header>
+
+    <div class="w-full max-w-3xl p-4 md:p-8 relative pt-16">
 
         <!-- HEADER BRANDING UTAMA -->
-        <div class="text-center mb-10 mt-6 sm:mt-0">
+        <div class="text-center mb-10">
             <div class="inline-flex items-center gap-3 text-blue-600 mb-2">
                 <div class="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-blue-200">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -74,7 +90,7 @@ require_once __DIR__ . '/proses/proses_login.php';
         </div>
 
         <!-- TAHAP 2: INPUT PIN 4 DIGIT -->
-        <div id="step-pin-entry" class="hidden transition-all duration-500 ease-in-out absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md mt-10 p-4">
+        <div id="step-pin-entry" class="hidden transition-all duration-500 ease-in-out absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md mt-10 p-4 z-20">
             <div class="bg-white/95 backdrop-blur-md rounded-3xl p-8 shadow-xl border border-white text-center relative">
 
                 <button type="button" onclick="backToSelect()" class="absolute top-6 left-6 text-gray-400 hover:text-gray-700 transition" title="Kembali pilih akun">
@@ -87,7 +103,6 @@ require_once __DIR__ . '/proses/proses_login.php';
                 <p id="selected-name" class="text-blue-600 font-bold mb-8 text-sm">Nama User</p>
 
                 <form id="form-login" method="POST" action="login.php">
-                    <!-- CSRF TOKEN & INPUT MAHASISWA -->
                     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
                     <input type="hidden" name="nama_user" id="input-nama-user">
 
@@ -111,7 +126,6 @@ require_once __DIR__ . '/proses/proses_login.php';
                             <span class="pin-digit hidden text-3xl font-bold text-gray-800"></span>
                         </div>
 
-                        <!-- EYE TOGGLE BUTTON -->
                         <button type="button" id="eye-btn" class="absolute -right-16 z-20 p-2 text-gray-400 hover:text-blue-600 transition touch-none cursor-pointer">
                             <svg id="eye-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
