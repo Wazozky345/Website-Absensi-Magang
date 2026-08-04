@@ -1,17 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-require_once __DIR__ . '/../config/koneksi.php';
-
-// Proteksi Hak Akses Role Mentor
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'mentor') {
-    header("Location: ../login-mentor.php");
-    exit;
-}
-
-$mentor_id   = $_SESSION['user_id'];
-$nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
+// Murni memanggil otak proses_mentor_tugas.php
+require_once __DIR__ . '/../proses/proses_mentor_tugas.php';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -27,7 +16,13 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
 
 <body class="flex h-screen overflow-hidden text-gray-800 bg-[#F4F7FE]">
 
-    <?php include '../components/sidebar_mentor.php'; ?>
+    <?php 
+    if (file_exists(__DIR__ . '/../components/sidebar_mentor.php')) {
+        include __DIR__ . '/../components/sidebar_mentor.php';
+    } elseif (file_exists(__DIR__ . '/../components/sidebar.php')) {
+        include __DIR__ . '/../components/sidebar.php';
+    }
+    ?>
 
     <main class="flex-1 flex flex-col overflow-y-auto w-full relative">
 
@@ -78,13 +73,16 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
                             <input type="text" name="judul_tugas" required placeholder="Contoh: Analisis kebutuhan sistem minggu 7" class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 transition text-gray-800 placeholder-gray-400">
                         </div>
 
-                        <!-- DITUJUKAN UNTUK -->
+                        <!-- DITUJUKAN UNTUK (DINAMIS DARI DATABASE) -->
                         <div>
                             <label class="block text-xs font-bold text-gray-700 mb-2">Ditujukan Untuk <span class="text-rose-500">*</span></label>
                             <select name="target_mahasiswa" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 font-medium text-gray-800">
                                 <option value="all">Semua Mahasiswa Bimbingan</option>
-                                <option value="232101111">Alvin Nurfaiz (232101111)</option>
-                                <option value="232101145">M. Yusman Bayuga (232101145)</option>
+                                <?php foreach ($mahasiswa_list as $mhs): ?>
+                                    <option value="<?php echo htmlspecialchars($mhs['nim']); ?>">
+                                        <?php echo htmlspecialchars($mhs['nama_user']); ?> (<?php echo htmlspecialchars($mhs['nim']); ?>)
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
@@ -118,7 +116,7 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
                         <!-- TENGGAT PENGUMPULAN -->
                         <div class="md:col-span-4">
                             <label class="block text-xs font-bold text-gray-700 mb-2">Tenggat Pengumpulan <span class="text-rose-500">*</span></label>
-                            <input type="datetime-local" name="tenggat" required value="2026-08-05T23:59" class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 font-medium text-gray-800">
+                            <input type="datetime-local" name="tenggat" required value="<?php echo date('Y-m-d\T23:59', strtotime('+3 days')); ?>" class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 font-medium text-gray-800">
                         </div>
                     </div>
 
@@ -131,11 +129,11 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
                 </form>
             </div>
 
-            <!-- DAFTAR TUGAS TERKIRIM -->
+            <!-- DAFTAR TUGAS TERKIRIM (DINAMIS DARI DATABASE) -->
             <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-base font-bold text-gray-800">Daftar Penugasan Terdistribusi</h3>
-                    <span class="bg-blue-50 text-blue-600 font-bold text-xs px-3 py-1 rounded-full">Aktif</span>
+                    <span class="bg-blue-50 text-blue-600 font-bold text-xs px-3 py-1 rounded-full">Total: <?php echo count($tugas_terdistribusi); ?></span>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -143,22 +141,49 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
                         <thead>
                             <tr class="text-gray-400 font-semibold border-b border-gray-100 pb-3">
                                 <th class="py-3">Judul Tugas</th>
-                                <th class="py-3">Target</th>
-                                <th class="py-3">Tenggat</th>
-                                <th class="py-3">File Balasan</th>
-                                <th class="py-3 text-center">Aksi</th>
+                                <th class="py-3">Target Mahasiswa</th>
+                                <th class="py-3">Tenggat Waktu</th>
+                                <th class="py-3">Lampiran Soal</th>
+                                <th class="py-3 text-center">Aksi Pantau</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50 text-gray-700">
-                            <tr class="hover:bg-gray-50/50 transition">
-                                <td class="py-3 font-bold text-gray-800">Analisis Kebutuhan Sistem W7</td>
-                                <td class="py-3">Semua Mahasiswa</td>
-                                <td class="py-3 text-gray-500">25 Jul 23:59 WIB</td>
-                                <td class="py-3 text-blue-600 font-semibold">📄 tugas_rangga_w7.pdf</td>
-                                <td class="py-3 text-center">
-                                    <a href="approval.php" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-xl transition inline-block">Review</a>
-                                </td>
-                            </tr>
+                            <?php if (!empty($tugas_terdistribusi)): ?>
+                                <?php foreach ($tugas_terdistribusi as $tg): 
+                                    $target_nama = $tg['nama_user'] ? htmlspecialchars($tg['nama_user']) : 'Semua Mahasiswa';
+                                    $tenggat_tampil = date('d M Y, H:i', strtotime($tg['tenggat'])) . ' WIB';
+                                    
+                                    // Tampilan nama file atau tanda strip jika tidak ada lampiran
+                                    $file_tampil = $tg['file_lampiran'] ? '📄 ' . htmlspecialchars($tg['file_lampiran']) : '-';
+                                    $file_link = $tg['file_lampiran'] ? '../uploads/tugas_mentor/' . htmlspecialchars($tg['file_lampiran']) : '#';
+                                ?>
+                                    <tr class="hover:bg-gray-50/50 transition">
+                                        <td class="py-3 font-bold text-gray-800"><?php echo htmlspecialchars($tg['judul_tugas']); ?></td>
+                                        <td class="py-3 text-gray-600">
+                                            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-md font-medium text-[10px]">
+                                                <?php echo $target_nama; ?>
+                                            </span>
+                                        </td>
+                                        <td class="py-3 text-rose-500 font-semibold"><?php echo $tenggat_tampil; ?></td>
+                                        <td class="py-3">
+                                            <?php if ($tg['file_lampiran']): ?>
+                                                <a href="<?php echo $file_link; ?>" download class="text-blue-600 font-semibold truncate max-w-[150px] block hover:underline" title="<?php echo htmlspecialchars($tg['file_lampiran']); ?>">
+                                                    <?php echo $file_tampil; ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-gray-300">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="py-3 text-center">
+                                            <a href="approval.php" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-xl transition inline-block">Review Status</a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" class="py-6 text-center text-gray-400 font-medium">Belum ada tugas yang didistribusikan.</td>
+                                </tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -167,7 +192,11 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
         </div>
     </main>
 
-    <?php include '../components/alert.php'; ?>
+    <?php 
+    if (file_exists(__DIR__ . '/../components/alert.php')) {
+        include __DIR__ . '/../components/alert.php';
+    } 
+    ?>
 
     <script>
         const fileInput = document.getElementById('fileInput');
@@ -193,7 +222,25 @@ $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
                 fileNameText.innerHTML = 'File terpilih: <span class="text-blue-600 font-bold">' + file.name + '</span> (' + fileSizeMB.toFixed(2) + ' MB)';
             }
         });
+
+        // SCRIPT DRAWER MOBILE
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+            const toggleSidebar = () => {
+                if (sidebar && sidebarOverlay) {
+                    sidebar.classList.toggle('-translate-x-full');
+                    sidebarOverlay.classList.toggle('hidden');
+                }
+            };
+
+            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleSidebar);
+            if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+        });
     </script>
 </body>
-
 </html>
