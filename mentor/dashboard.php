@@ -1,34 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-require_once __DIR__ . '/../config/koneksi.php';
-
-// Proteksi Hak Akses Role Mentor
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'mentor') {
-    header("Location: ../login-mentor.php");
-    exit;
-}
-
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-$mentor_id   = $_SESSION['user_id'];
-$nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
-
-// Query Ringkasan Statistik Mentor
-$q_mhs = $conn->query("SELECT COUNT(id) as total FROM users");
-$total_mhs = ($q_mhs) ? $q_mhs->fetch_assoc()['total'] : 0;
-
-$q_pending = $conn->query("SELECT COUNT(id) as total FROM tugas_detail WHERE status_approval = 'Menunggu Review'");
-$total_pending = ($q_pending) ? $q_pending->fetch_assoc()['total'] : 0;
-
-$q_bimbingan = $conn->query("SELECT COUNT(id) as total FROM bimbingan WHERE mentor_id = '$mentor_id' AND DATE(tanggal_waktu) = CURDATE()");
-$total_bimbingan_hari_ini = ($q_bimbingan) ? $q_bimbingan->fetch_assoc()['total'] : 0;
-
-$q_approved = $conn->query("SELECT COUNT(id) as total FROM tugas_detail WHERE status_approval = 'Disetujui'");
-$total_approved = ($q_approved) ? $q_approved->fetch_assoc()['total'] : 0;
+// Murni memanggil otak dashboard mentor dari folder proses
+require_once __DIR__ . '/../proses/proses_dashboard_mentor.php';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -145,55 +117,67 @@ $total_approved = ($q_approved) ? $q_approved->fetch_assoc()['total'] : 0;
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50 text-gray-700">
-                                <tr class="hover:bg-gray-50/50 transition">
-                                    <td class="py-3 font-bold text-gray-800">Alvin Nurfaiz</td>
-                                    <td class="py-3">Analisis Kebutuhan Sistem W7</td>
-                                    <td class="py-3 text-gray-400">Hari ini, 08:14 WIB</td>
-                                    <td class="py-3 text-center">
-                                        <a href="approval.php" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-xl transition inline-block">Review</a>
-                                    </td>
-                                </tr>
-                                <tr class="hover:bg-gray-50/50 transition">
-                                    <td class="py-3 font-bold text-gray-800">M. Yusman Bayuga</td>
-                                    <td class="py-3">Revisi Laporan BAB II</td>
-                                    <td class="py-3 text-gray-400">Hari ini, 15:22 WIB</td>
-                                    <td class="py-3 text-center">
-                                        <a href="approval.php" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-xl transition inline-block">Review</a>
-                                    </td>
-                                </tr>
+                                <!-- INJEKSI DATA DINAMIS DARI DATABASE -->
+                                <?php if (!empty($antrean_tugas)): ?>
+                                    <?php foreach ($antrean_tugas as $at): 
+                                        $waktu_ts = strtotime($at['waktu_kirim']);
+                                        $is_today = (date('Y-m-d', $waktu_ts) === date('Y-m-d'));
+                                        $tampil_waktu = $is_today ? 'Hari ini, ' . date('H:i', $waktu_ts) . ' WIB' : date('d M Y, H:i', $waktu_ts) . ' WIB';
+                                    ?>
+                                        <tr class="hover:bg-gray-50/50 transition">
+                                            <td class="py-3 font-bold text-gray-800"><?php echo htmlspecialchars($at['nama_user']); ?></td>
+                                            <td class="py-3 truncate max-w-[150px]"><?php echo htmlspecialchars($at['judul_tugas']); ?></td>
+                                            <td class="py-3 text-gray-400"><?php echo $tampil_waktu; ?></td>
+                                            <td class="py-3 text-center">
+                                                <a href="approval.php" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-xl transition inline-block">Review</a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="4" class="py-6 text-center text-gray-400 font-medium">Belum ada antrean tugas yang perlu direview.</td>
+                                    </tr>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- JADWAL BAMBINGAN TERDEKAT -->
+                <!-- JADWAL BIMBINGAN TERDEKAT -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between">
                     <div>
                         <div class="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
-                            <h3 class="text-base font-bold text-gray-800">Agenda Bimbingan</h3>
+                            <h3 class="text-base font-bold text-gray-800">Agenda Hari Ini</h3>
                             <a href="bimbingan.php" class="text-xs font-bold text-blue-600 hover:underline">Kelola</a>
                         </div>
 
                         <div class="space-y-3">
-                            <div class="p-3.5 bg-blue-50/60 border border-blue-100 rounded-2xl flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-xs">13:00</div>
-                                <div>
-                                    <p class="text-xs font-bold text-gray-800">Alvin Nurfaiz</p>
-                                    <p class="text-[10px] text-gray-500">Tatap Muka - Ruang Lapangan BRI</p>
+                            <!-- INJEKSI DATA DINAMIS DARI DATABASE -->
+                            <?php if (!empty($agenda_bimbingan)): ?>
+                                <?php foreach ($agenda_bimbingan as $ab): 
+                                    $jam = date('H:i', strtotime($ab['tanggal_waktu']));
+                                    $metode = htmlspecialchars($ab['metode']);
+                                    $warna_bg = ($metode === 'Online') ? 'emerald' : 'blue';
+                                ?>
+                                    <div class="p-3.5 bg-<?php echo $warna_bg; ?>-50/60 border border-<?php echo $warna_bg; ?>-100 rounded-2xl flex items-center gap-3 transition hover:shadow-sm">
+                                        <div class="w-10 h-10 rounded-xl bg-<?php echo $warna_bg; ?>-600 text-white font-bold flex items-center justify-center text-xs"><?php echo $jam; ?></div>
+                                        <div>
+                                            <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($ab['nama_user']); ?></p>
+                                            <p class="text-[10px] text-gray-500"><?php echo $metode; ?></p>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="text-center py-6">
+                                    <p class="text-xs font-medium text-gray-400">Tidak ada jadwal bimbingan hari ini.</p>
                                 </div>
-                            </div>
-                            <div class="p-3.5 bg-emerald-50/60 border border-emerald-100 rounded-2xl flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center text-xs">15:30</div>
-                                <div>
-                                    <p class="text-xs font-bold text-gray-800">M. Yusman Bayuga</p>
-                                    <p class="text-[10px] text-gray-500">Online - Google Meet</p>
-                                </div>
-                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 
-                    <a href="tugas.php" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 rounded-2xl text-xs shadow-md shadow-blue-200 transition">
-                        + Distribusi Tugas Baru
+                    <a href="tugas.php" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 rounded-2xl text-xs shadow-md shadow-blue-200 transition flex justify-center items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Distribusi Tugas Baru
                     </a>
                 </div>
 
