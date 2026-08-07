@@ -62,13 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($pin_valid) {
                     session_regenerate_id(true);
                     $conn->query("UPDATE mentors SET failed_attempts = 0, lockout_time = NULL WHERE id = $mentor_id");
-                    
+
                     $_SESSION['user_id'] = $mentor['id'];
                     $_SESSION['username'] = $mentor['username'];
                     $_SESSION['nama_user'] = $mentor['nama_mentor'];
                     $_SESSION['role'] = 'mentor';
 
-                    $_SESSION['alert'] = ['type' => 'success', 'title' => 'Login Berhasil!', 'message' => 'Selamat datang!'];
+                    // $_SESSION['alert'] = ['type' => 'success', 'title' => 'Login Berhasil!', 'message' => 'Selamat datang!'];
                     header("Location: mentor/dashboard.php"); // FIX: Masuk ke folder mentor
                     exit;
                 } else {
@@ -78,13 +78,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmt_lock = $conn->prepare("UPDATE mentors SET failed_attempts = ?, lockout_time = ? WHERE id = ?");
                         $stmt_lock->bind_param("isi", $attempts, $lockout_until, $mentor_id);
                         $stmt_lock->execute();
-                        
+
                         $_SESSION['alert'] = ['type' => 'error', 'title' => 'Akun Terkunci!', 'message' => 'PIN salah 3x. Akun dikunci 5 menit.'];
                     } else {
                         $stmt_fail = $conn->prepare("UPDATE mentors SET failed_attempts = ? WHERE id = ?");
                         $stmt_fail->bind_param("ii", $attempts, $mentor_id);
                         $stmt_fail->execute();
-                        
+
                         $sisa = 3 - $attempts;
                         $_SESSION['alert'] = ['type' => 'error', 'title' => 'PIN Salah!', 'message' => "Sisa kesempatan: {$sisa}x lagi."];
                     }
@@ -100,4 +100,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-?>
