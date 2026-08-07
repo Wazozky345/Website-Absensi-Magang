@@ -132,7 +132,7 @@ if (!isset($milestone_list) || empty($milestone_list)) {
 
                                 $kategori_item = $item_agenda['kategori'] ?? 'Industri';
                                 $warna = 'gray'; 
-                                $icon  = '📅';
+                                $icon  = '📌';
 
                                 if ($kategori_item === 'Industri') { $warna = 'emerald'; $icon = '🏢'; }
                                 elseif ($kategori_item === 'Kampus') { $warna = 'blue'; $icon = '🎓'; } 
@@ -411,6 +411,23 @@ if (!isset($milestone_list) || empty($milestone_list)) {
                 milestoneModal.classList.add('hidden');
             }, 200);
         }
+
+        // PENANGANAN HAMBURGER MENU MOBILE SIDEBAR
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+            const toggleSidebar = () => {
+                if (sidebar) sidebar.classList.toggle('-translate-x-full');
+                if (sidebarOverlay) sidebarOverlay.classList.toggle('hidden');
+            };
+
+            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleSidebar);
+            if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+        });
     </script>
 
     <!-- POP-UP REMINDER PENGINGAT AGENDA H-1 -->
