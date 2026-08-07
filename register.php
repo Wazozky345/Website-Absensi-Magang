@@ -1,6 +1,6 @@
 <?php require_once __DIR__ . '/config/ddos_layer.php'; 
 // 🚧⚠️ File Register ini masih dalam tahap pengembangan, jadi beberapa fitur mungkin belum sepenuhnya berfungsi.
-// jangan gunakan register.php dulu sampai comment ini terhapus 🚧🗼
+// JANGAN GUNAKAN, SEKALI LAGI JANGAN GUNAKAN register.php dulu sampai comment ini terhapus 🚧🗼
 ?>
 <!DOCTYPE html>
 <html lang="id">
