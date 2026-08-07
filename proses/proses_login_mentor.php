@@ -52,10 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login_mentor'
             $mentor = $result->fetch_assoc();
 
             // D. Verifikasi PIN (Mendukung Plaintext '1234', password_verify Hash, maupun MD5 Fallback)
+            // D. Verifikasi PIN (Mendukung Plaintext bawaan DB, dan Bcrypt. TANPA BACKDOOR!)
             $pin_valid = false;
-            if ($pin === $mentor['pin'] || $pin === '1234') {
-                $pin_valid = true;
-            } elseif (password_verify($pin, $mentor['pin']) || md5($pin) === $mentor['pin']) {
+            // Hanya sah jika yang diketik persis sama dengan Plaintext di DB, ATAU cocok dengan Hash Bcrypt di DB
+            if ($pin === $mentor['pin'] || password_verify($pin, $mentor['pin'])) {
                 $pin_valid = true;
             }
 
