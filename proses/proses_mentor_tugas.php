@@ -223,7 +223,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($target_user_id !== NULL) {
                     $conn->query("INSERT INTO tugas_detail (tugas_id, user_id, status_approval) VALUES ('$tugas_id', '$target_user_id', 'Belum Ada Berkas')");
                 } else {
-                    $query_users = $conn->query("SELECT id FROM users WHERE LOWER(role) = 'mahasiswa' OR (nim IS NOT NULL AND nim != '')");
+                    // FIX: Hapus query pengecekan kolom role yang menyebabkan error
+                    $query_users = $conn->query("SELECT id FROM users");
                     if ($query_users && $query_users->num_rows > 0) {
                         while ($u = $query_users->fetch_assoc()) {
                             $uid = $u['id'];
@@ -252,7 +253,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // A. Query Ambil Semua Data Mahasiswa untuk Option Dropdown
 $mahasiswa_list = [];
-$q_mhs = $conn->query("SELECT id, nama_user, nim FROM users WHERE LOWER(role) = 'mahasiswa' OR (nim IS NOT NULL AND nim != '') ORDER BY nama_user ASC");
+// FIX: Hapus pengecekan kolom role yang menyebabkan error
+$q_mhs = $conn->query("SELECT id, nama_user, nim FROM users ORDER BY nama_user ASC");
 if ($q_mhs && $q_mhs->num_rows > 0) {
     while ($m = $q_mhs->fetch_assoc()) {
         $mahasiswa_list[] = $m;
