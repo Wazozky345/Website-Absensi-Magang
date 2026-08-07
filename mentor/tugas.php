@@ -91,16 +91,20 @@ if (empty($_SESSION['csrf_token'])) {
                             <input type="text" name="judul_tugas" required placeholder="Contoh: Analisis kebutuhan sistem minggu 7" class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 transition text-gray-800 placeholder-gray-400">
                         </div>
 
-                        <!-- DITUJUKAN UNTUK -->
+                        <!-- DITUJUKAN UNTUK (OPSIONAL: SEMUA / SPESIFIK MAHASISWA) -->
                         <div>
                             <label class="block text-xs font-bold text-gray-700 mb-2">Ditujukan Untuk <span class="text-rose-500">*</span></label>
-                            <select name="target_mahasiswa" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 font-medium text-gray-800">
-                                <option value="all">Semua Mahasiswa Bimbingan</option>
-                                <?php foreach ($mahasiswa_list as $mhs): ?>
-                                    <option value="<?php echo htmlspecialchars($mhs['nim']); ?>">
-                                        <?php echo htmlspecialchars($mhs['nama_user']); ?> (<?php echo htmlspecialchars($mhs['nim']); ?>)
-                                    </option>
-                                <?php endforeach; ?>
+                            <select name="target_mahasiswa" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 font-semibold text-gray-800">
+                                <option value="all">👥 Semua Mahasiswa Bimbingan</option>
+                                <?php if (!empty($mahasiswa_list)): ?>
+                                    <optgroup label="Pilih Spesifik Mahasiswa">
+                                        <?php foreach ($mahasiswa_list as $mhs): ?>
+                                            <option value="<?php echo htmlspecialchars($mhs['nim'] ?: $mhs['id']); ?>">
+                                                👤 <?php echo htmlspecialchars($mhs['nama_user']); ?> <?php echo !empty($mhs['nim']) ? '(' . htmlspecialchars($mhs['nim']) . ')' : ''; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </optgroup>
+                                <?php endif; ?>
                             </select>
                         </div>
                     </div>
@@ -147,7 +151,7 @@ if (empty($_SESSION['csrf_token'])) {
                 </form>
             </div>
 
-            <!-- DAFTAR TUGAS TERKIRIM DENGAN FITUR READ, PREVIEW, UPLOAD & DELETE -->
+            <!-- DAFTAR TUGAS TERKIRIM DENGAN FITUR TARIK FILE & DELETE -->
             <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-base font-bold text-gray-800">Daftar Penugasan Terdistribusi</h3>
@@ -184,48 +188,52 @@ if (empty($_SESSION['csrf_token'])) {
                                         </td>
                                         <td class="py-3.5 text-rose-500 font-semibold"><?php echo $tenggat_tampil; ?></td>
                                         
-                                        <!-- KOLOM LAMPIRAN + AKSES PREVIEW & UNDUH -->
+                                        <!-- KOLOM LAMPIRAN + KELOLA TARIK BERKAS -->
                                         <td class="py-3.5">
                                             <?php if ($has_file): ?>
                                                 <div class="flex flex-col gap-1">
                                                     <span class="text-gray-700 font-medium truncate max-w-[150px] block" title="<?php echo $file_tampil; ?>">
                                                         📄 <?php echo $file_tampil; ?>
                                                     </span>
-                                                    <div class="flex items-center gap-2">
-                                                        <!-- TOMBOL PRATINJAU (TAB BARU) -->
-                                                        <a href="<?php echo $file_link; ?>" target="_blank" class="text-[10px] bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-2 py-0.5 rounded-md font-bold transition flex items-center gap-0.5">
-                                                            👁️ Lihat
+                                                    <div class="flex items-center gap-1.5">
+                                                        <a href="<?php echo $file_link; ?>" target="_blank" class="text-[10px] bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-2 py-0.5 rounded-md font-bold transition">
+                                                            Lihat
                                                         </a>
-                                                        <!-- TOMBOL UNDUH -->
-                                                        <a href="<?php echo $file_link; ?>" download class="text-[10px] bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-0.5 rounded-md font-bold transition flex items-center gap-0.5">
-                                                            📥 Unduh
-                                                        </a>
-                                                        <!-- TOMBOL UBAH FILE -->
-                                                        <button type="button" onclick="openModalUploadLampiran(<?php echo $tg['id']; ?>, '<?php echo htmlspecialchars(addslashes($tg['judul_tugas'])); ?>')" class="text-[10px] bg-gray-100 text-gray-600 hover:bg-gray-200 px-2 py-0.5 rounded-md font-bold transition">
-                                                            ✏️ Ganti
+                                                        <button type="button" onclick="openModalUploadLampiran(<?php echo $tg['id']; ?>, '<?php echo htmlspecialchars(addslashes($tg['judul_tugas'])); ?>')" class="text-[10px] bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-0.5 rounded-md font-bold transition">
+                                                            Ganti
                                                         </button>
+
+                                                        <form method="POST" action="../proses/proses_mentor_tugas.php" id="formTarikFile_<?php echo $tg['id']; ?>" class="inline">
+                                                            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                                                            <input type="hidden" name="tarik_file_id" value="<?php echo $tg['id']; ?>">
+                                                            <button type="button" onclick="konfirmasiTarikFile(<?php echo $tg['id']; ?>, '<?php echo htmlspecialchars(addslashes($tg['file_lampiran'])); ?>')" class="text-[10px] bg-amber-50 text-amber-600 hover:bg-amber-100 px-2 py-0.5 rounded-md font-bold transition cursor-pointer" title="Tarik berkas agar tidak dapat diunduh mahasiswa">
+                                                                🚫 Tarik File
+                                                            </button>
+                                                        </form>
                                                     </div>
                                                 </div>
                                             <?php else: ?>
-                                                <button type="button" onclick="openModalUploadLampiran(<?php echo $tg['id']; ?>, '<?php echo htmlspecialchars(addslashes($tg['judul_tugas'])); ?>')" class="text-[10px] bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-2 py-1 rounded-lg font-bold transition flex items-center gap-1">
-                                                    📎 Upload File
-                                                </button>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-gray-300 text-[11px] font-medium">Tanpa Lampiran</span>
+                                                    <button type="button" onclick="openModalUploadLampiran(<?php echo $tg['id']; ?>, '<?php echo htmlspecialchars(addslashes($tg['judul_tugas'])); ?>')" class="text-[10px] bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-2 py-0.5 rounded-lg font-bold transition">
+                                                        + Upload
+                                                    </button>
+                                                </div>
                                             <?php endif; ?>
                                         </td>
 
-                                        <!-- AKSI PANTAU & DELETE TUGAS -->
+                                        <!-- AKSI PANTAU & DELETE SELURUH TUGAS -->
                                         <td class="py-3.5 text-center">
                                             <div class="flex items-center justify-center gap-2">
                                                 <a href="approval.php" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-xl transition inline-block text-xs">
                                                     Review Status
                                                 </a>
 
-                                                <!-- FORM HAPUS PENUGASAN -->
                                                 <form method="POST" action="../proses/proses_mentor_tugas.php" id="formHapusTugas_<?php echo $tg['id']; ?>" class="inline">
                                                     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                                                     <input type="hidden" name="hapus_tugas_id" value="<?php echo $tg['id']; ?>">
                                                     <button type="button" onclick="konfirmasiHapus(<?php echo $tg['id']; ?>, '<?php echo htmlspecialchars(addslashes($tg['judul_tugas'])); ?>')" class="bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl transition inline-block text-xs cursor-pointer">
-                                                        Hapus
+                                                        Hapus Tugas
                                                     </button>
                                                 </form>
                                             </div>
@@ -315,20 +323,35 @@ if (empty($_SESSION['csrf_token'])) {
             });
         }
 
-        // KONFIRMASI HAPUS TUGAS
+        function konfirmasiTarikFile(id, namaFile) {
+            Swal.fire({
+                title: 'Tarik Berkas Lampiran?',
+                text: 'Berkas "' + namaFile + '" akan ditarik dari server. Mahasiswa tidak akan dapat mengunduh berkas ini lagi.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d97706',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Ya, Tarik Berkas',
+                cancelButtonText: 'Batal',
+                customClass: { popup: 'rounded-3xl' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('formTarikFile_' + id).submit();
+                }
+            });
+        }
+
         function konfirmasiHapus(id, judul) {
             Swal.fire({
-                title: 'Hapus Penugasan?',
-                text: 'Tugas "' + judul + '" beserta berkas terkait akan dihapus permanen.',
+                title: 'Hapus Penugasan Total?',
+                text: 'Tugas "' + judul + '" beserta seluruh instruksi akan dibatalkan & dihapus dari antrean mahasiswa.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#e11d48',
                 cancelButtonColor: '#64748b',
-                confirmButtonText: 'Ya, Hapus Tugas',
+                confirmButtonText: 'Ya, Hapus Total',
                 cancelButtonText: 'Batal',
-                customClass: {
-                    popup: 'rounded-3xl'
-                }
+                customClass: { popup: 'rounded-3xl' }
             }).then((result) => {
                 if (result.isConfirmed) {
                     document.getElementById('formHapusTugas_' + id).submit();
@@ -336,7 +359,6 @@ if (empty($_SESSION['csrf_token'])) {
             });
         }
 
-        // MODAL UPLOAD / GANTI LAMPIRAN
         function openModalUploadLampiran(id, judul) {
             document.getElementById('modalTugasId').value = id;
             document.getElementById('targetJudulTugas').innerText = judul;
@@ -365,7 +387,6 @@ if (empty($_SESSION['csrf_token'])) {
             }, 300);
         }
 
-        // SCRIPT DRAWER MOBILE
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.getElementById('sidebar');
             const mobileMenuBtn = document.getElementById('mobileMenuBtn');
