@@ -99,11 +99,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login']) || i
                 $_SESSION['role']          = 'mahasiswa';
                 $_SESSION['last_activity'] = time();
 
-                $_SESSION['alert'] = [
+                /*$_SESSION['alert'] = [
                     'type' => 'success',
                     'title' => 'Login Berhasil!',
                     'message' => 'Selamat datang kembali, ' . $_SESSION['nama_user']
-                ];
+                ];*/
 
                 header("Location: mahasiswa/dashboard_mahasiswa.php");
                 exit;
