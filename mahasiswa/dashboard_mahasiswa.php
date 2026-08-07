@@ -12,6 +12,10 @@ require_once __DIR__ . '/../proses/proses_dashboard.php';
     <link rel="stylesheet" href="../assets/style.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
 </head>
 
 <body class="flex h-screen overflow-hidden text-gray-800 bg-[#F4F7FE]">
@@ -436,13 +440,77 @@ require_once __DIR__ . '/../proses/proses_dashboard.php';
         </div>
     </div>
 
-    <script>
-        const dataKehadiranBulanan = <?php echo isset($json_grafik_hadir) ? $json_grafik_hadir : '[0,0,0,0,0,0,0,0,0,0,0,0]'; ?>;
-    </script>
-
     <script src="../assets/script.js?v=<?php echo time(); ?>"></script>
 
+    <!-- INITIALIZATION INLINE SCRIPT FOR CHART.JS -->
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dataKehadiranBulanan = <?php echo isset($json_grafik_hadir) ? $json_grafik_hadir : '[0,0,0,0,0,0,0,0,0,0,0,0]'; ?>;
+            const ctx = document.getElementById('attendanceChart');
+
+            if (ctx && typeof Chart !== 'undefined') {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+                        datasets: [{
+                            label: 'Jumlah Kehadiran',
+                            data: dataKehadiranBulanan,
+                            borderColor: '#0084FF',
+                            backgroundColor: 'rgba(0, 132, 255, 0.08)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#0084FF',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#1e293b',
+                                titleFont: { family: 'Plus Jakarta Sans', size: 12, weight: 'bold' },
+                                bodyFont: { family: 'Plus Jakarta Sans', size: 12 },
+                                padding: 10,
+                                cornerRadius: 10,
+                                displayColors: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1,
+                                    color: '#94a3b8',
+                                    font: { family: 'Plus Jakarta Sans', size: 11 }
+                                },
+                                grid: { color: '#f1f5f9' }
+                            },
+                            x: {
+                                ticks: {
+                                    color: '#94a3b8',
+                                    font: { family: 'Plus Jakarta Sans', size: 11 }
+                                },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+
+            <?php if ($tugas_baru_masuk): ?>
+                setTimeout(() => {
+                    openModalTugas();
+                }, 400);
+            <?php endif; ?>
+        });
+
         // FUNCTION MODAL POPUP UNTUK TUGAS MENTOR
         function openModalTugas() {
             const modal = document.getElementById('modalTugasContainer');
@@ -509,15 +577,6 @@ require_once __DIR__ . '/../proses/proses_dashboard.php';
                 modal.classList.add('hidden');
             }, 300);
         }
-
-        // AUTO OPEN POP-UP JIKA ADA TUGAS BARU / REVISI DARI MENTOR
-        document.addEventListener('DOMContentLoaded', () => {
-            <?php if ($tugas_baru_masuk): ?>
-                setTimeout(() => {
-                    openModalTugas();
-                }, 400);
-            <?php endif; ?>
-        });
     </script>
 
     <?php include __DIR__ . '/../components/alert.php'; ?>
