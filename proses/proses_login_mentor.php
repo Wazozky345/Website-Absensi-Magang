@@ -1,48 +1,33 @@
 <?php
-// 1. Inisialisasi Sesi jika belum berjalan (Anti Notice Session Active)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-// 2. Panggil koneksi database dari folder config/
 require_once __DIR__ . '/../config/koneksi.php';
+date_default_timezone_set('Asia/Jakarta');
 
-// 3. Buat CSRF Token jika belum ada di sesi
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// 4. Proses Form POST Login Mentor
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login_mentor']) || isset($_POST['username']) || isset($_POST['pin']))) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // A. Validasi CSRF Token
+    // Validasi CSRF
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
-        $_SESSION['alert'] = [
-            'type' => 'error',
-            'title' => 'Sesi Berakhir',
-            'message' => 'Permintaan tidak valid. Silakan muat ulang halaman dan coba lagi.'
-        ];
-        header("Location: login-mentor.php");
+        $_SESSION['alert'] = ['type' => 'error', 'title' => 'Sesi Berakhir', 'message' => 'Permintaan tidak valid.'];
+        header("Location: ../login-mentor.php");
         exit;
     }
 
-    // B. Sanitasi & Ambil Input
     $username = trim($_POST['username'] ?? '');
     $pin      = trim($_POST['pin'] ?? '');
 
     if (empty($username) || empty($pin)) {
-        $_SESSION['alert'] = [
-            'type' => 'warning',
-            'title' => 'Input Tidak Lengkap',
-            'message' => 'Username dan PIN 4 digit wajib diisi!'
-        ];
-        header("Location: login-mentor.php");
+        $_SESSION['alert'] = ['type' => 'warning', 'title' => 'Input Kosong', 'message' => 'Username dan PIN wajib diisi!'];
+        header("Location: ../login-mentor.php");
         exit;
     }
 
-    // C. Query Database ke Tabel `mentors` Menggunakan Prepared Statement
     $stmt = $conn->prepare("SELECT * FROM mentors WHERE username = ? LIMIT 1");
-
     if ($stmt) {
         $stmt->bind_param("s", $username);
         $stmt->execute();
@@ -50,55 +35,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login_mentor'
 
         if ($result && $result->num_rows === 1) {
             $mentor = $result->fetch_assoc();
+            $mentor_id = $mentor['id'];
+            $waktu_sekarang = date('Y-m-d H:i:s');
+            $lockout_time = $mentor['lockout_time'];
+            $failed_attempts = $mentor['failed_attempts'];
 
-            // D. Verifikasi PIN (Mendukung Plaintext '1234', password_verify Hash, maupun MD5 Fallback)
-            // D. Verifikasi PIN (Mendukung Plaintext bawaan DB, dan Bcrypt. TANPA BACKDOOR!)
-            $pin_valid = false;
-            // Hanya sah jika yang diketik persis sama dengan Plaintext di DB, ATAU cocok dengan Hash Bcrypt di DB
-            if ($pin === $mentor['pin'] || password_verify($pin, $mentor['pin'])) {
-                $pin_valid = true;
-            }
-
-            // E. Login Berhasil
-            if ($pin_valid) {
-                $stmt->close();
-
-                // Regenerasi ID sesi untuk mencegah Session Fixation Attack
-                session_regenerate_id(true);
-
-                // Set Variabel Sesi Login Mentor
-                $_SESSION['user_id']   = $mentor['id'];
-                $_SESSION['username']  = $mentor['username'];
-                $_SESSION['nama_user'] = $mentor['nama_mentor'] ?? $mentor['nama'] ?? 'Mentor';
-                $_SESSION['role']      = 'mentor';
-
-                // Simpan Cookie "Ingat Saya" (Opsional, 30 Hari)
-                if (isset($_POST['remember'])) {
-                    setcookie('mentor_remember', $mentor['username'], time() + (86400 * 30), "/", "", false, true);
+            // Cek Masa Hukuman
+            if ($lockout_time != NULL && $lockout_time > $waktu_sekarang) {
+                $sisa_menit = ceil((strtotime($lockout_time) - strtotime($waktu_sekarang)) / 60);
+                $_SESSION['alert'] = ['type' => 'error', 'title' => 'Akun Terkunci!', 'message' => "Coba lagi dalam {$sisa_menit} menit."];
+                header("Location: ../login-mentor.php");
+                exit;
+            } else {
+                // Reset hukuman kalau waktu sudah lewat
+                if ($lockout_time != NULL && $lockout_time <= $waktu_sekarang) {
+                    $conn->query("UPDATE mentors SET failed_attempts = 0, lockout_time = NULL WHERE id = $mentor_id");
+                    $failed_attempts = 0;
                 }
 
-                $_SESSION['alert'] = [
-                    'type' => 'success',
-                    'title' => 'Login Berhasil!',
-                    'message' => 'Selamat datang kembali, ' . $_SESSION['nama_user']
-                ];
+                // Cek PIN (Plaintext atau Bcrypt)
+                $pin_valid = false;
+                if ($pin === $mentor['pin'] || password_verify($pin, $mentor['pin'])) {
+                    $pin_valid = true;
+                }
 
-                // Arahkan ke dashboard mentor
-                header("Location: mentor/dashboard.php");
-                exit;
+                if ($pin_valid) {
+                    session_regenerate_id(true);
+                    $conn->query("UPDATE mentors SET failed_attempts = 0, lockout_time = NULL WHERE id = $mentor_id");
+                    
+                    $_SESSION['user_id'] = $mentor['id'];
+                    $_SESSION['username'] = $mentor['username'];
+                    $_SESSION['nama_user'] = $mentor['nama_mentor'];
+                    $_SESSION['role'] = 'mentor';
+
+                    $_SESSION['alert'] = ['type' => 'success', 'title' => 'Login Berhasil!', 'message' => 'Selamat datang!'];
+                    header("Location: ../mentor/dashboard.php"); // Perhatikan: ../mentor/dashboard.php
+                    exit;
+                } else {
+                    $attempts = $failed_attempts + 1;
+                    if ($attempts >= 3) {
+                        $lockout_until = date('Y-m-d H:i:s', strtotime('+5 minutes'));
+                        $stmt_lock = $conn->prepare("UPDATE mentors SET failed_attempts = ?, lockout_time = ? WHERE id = ?");
+                        $stmt_lock->bind_param("isi", $attempts, $lockout_until, $mentor_id);
+                        $stmt_lock->execute();
+                        
+                        $_SESSION['alert'] = ['type' => 'error', 'title' => 'Akun Terkunci!', 'message' => 'PIN salah 3x. Akun dikunci 5 menit.'];
+                    } else {
+                        $stmt_fail = $conn->prepare("UPDATE mentors SET failed_attempts = ? WHERE id = ?");
+                        $stmt_fail->bind_param("ii", $attempts, $mentor_id);
+                        $stmt_fail->execute();
+                        
+                        $sisa = 3 - $attempts;
+                        $_SESSION['alert'] = ['type' => 'error', 'title' => 'PIN Salah!', 'message' => "Sisa kesempatan: {$sisa}x lagi."];
+                    }
+                    header("Location: ../login-mentor.php");
+                    exit;
+                }
             }
+        } else {
+            // Username Tidak Ditemukan
+            $_SESSION['alert'] = ['type' => 'error', 'title' => 'Gagal!', 'message' => 'Username tidak terdaftar!'];
+            header("Location: ../login-mentor.php");
+            exit;
         }
-
-        $stmt->close();
     }
-
-    // F. Login Gagal (Username / PIN Salah)
-    $_SESSION['alert'] = [
-        'type' => 'error',
-        'title' => 'Akses Ditolak',
-        'message' => 'Username atau PIN 4 digit yang Anda masukkan salah.'
-    ];
-
-    header("Location: login-mentor.php");
-    exit;
 }
+?>
