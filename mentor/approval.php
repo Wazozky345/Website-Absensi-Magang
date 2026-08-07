@@ -282,6 +282,24 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
             if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
             if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
         });
+
+        <!-- SCRIPT DRAWER MOBILE (HAMBURGER MENU) -->
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+            // Logika Toggle yang lebih fleksibel (Tahan banting meskipun tidak ada overlay)
+            const toggleSidebar = () => {
+                if (sidebar) sidebar.classList.toggle('-translate-x-full');
+                if (sidebarOverlay) sidebarOverlay.classList.toggle('hidden');
+            };
+
+            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleSidebar);
+            if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+        });
     </script>
 </body>
 </html>
