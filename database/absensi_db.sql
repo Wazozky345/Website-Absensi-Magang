@@ -29,16 +29,19 @@ CREATE TABLE `users` (
   `nim` varchar(20) NOT NULL,
   `kelas` varchar(50) NOT NULL,
   `konsentrasi` varchar(100) NOT NULL,
+  `email` varchar(100) DEFAULT NULL,
   `pin` varchar(255) NOT NULL, 
   `failed_attempts` int(11) NOT NULL DEFAULT 0, 
   `lockout_time` datetime DEFAULT NULL, 
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `nim_unik` (`nim`),
+  UNIQUE KEY `email_unik` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Data Awal Mahasiswa (PIN Default: 1234)
-INSERT INTO `users` (`id`, `nama_user`, `nim`, `kelas`, `konsentrasi`, `pin`, `failed_attempts`, `lockout_time`) VALUES
-(1, 'Alvin Nurfaiz', '232101111', 'TiF 23 CNS J', 'Computer and Network Security', '$2y$10$771J.TR8EnLcoC2arj3gM.POiqGua6aT8J/c2naogZ8xB8ptOeQkG', 0, NULL),
-(2, 'M. Yusman Bayuga', '232101145', 'TiF 23 CiD G', 'Creative Interactive Design', '$2y$10$771J.TR8EnLcoC2arj3gM.POiqGua6aT8J/c2naogZ8xB8ptOeQkG', 0, NULL);
+-- Data Awal Mahasiswa (PIN Default: 1234, sudah di-hash Bcrypt)
+INSERT INTO `users` (`id`, `nama_user`, `nim`, `kelas`, `konsentrasi`, `email`, `pin`, `failed_attempts`, `lockout_time`) VALUES
+(1, 'Alvin Nurfaiz', '232101111', 'TiF 23 CNS J', 'Computer and Network Security', 'alvin.nurfaiz@student.utb.ac.id', '$2y$10$771J.TR8EnLcoC2arj3gM.POiqGua6aT8J/c2naogZ8xB8ptOeQkG', 0, NULL),
+(2, 'M. Yusman Bayuga', '232101145', 'TiF 23 CiD G', 'Creative Interactive Design', 'yusman.bayuga@student.utb.ac.id', '$2y$10$771J.TR8EnLcoC2arj3gM.POiqGua6aT8J/c2naogZ8xB8ptOeQkG', 0, NULL);
 
 
 -- --------------------------------------------------------
@@ -122,17 +125,21 @@ CREATE TABLE `mentors` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(50) NOT NULL,
   `nama_mentor` varchar(100) NOT NULL,
+  `email` varchar(100) DEFAULT NULL,
   `pin` varchar(255) NOT NULL,
   `jabatan` varchar(100) DEFAULT 'Pembimbing Lapangan',
+  `failed_attempts` int(11) NOT NULL DEFAULT 0,
+  `lockout_time` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`)
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `email_unik` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Data Awal Mentor (PIN Default: 1234)
-INSERT INTO `mentors` (`id`, `username`, `nama_mentor`, `pin`, `jabatan`, `created_at`) VALUES
-(1, 'mentor.alvin', 'Dr. Alvin Nurfaiz, M.T.', '1234', 'Pembimbing Lapangan BRI', '2026-06-01 08:00:00'),
-(2, 'mentor.bayuga', 'M. Yusman Bayuga, S.T., M.Kom.', '1234', 'Pembimbing Akademik UTB', '2026-06-01 08:00:00');
+-- Data Awal Mentor (PIN Default: 1234, belum di-hash untuk testing skenario Plaintext-ke-Bcrypt)
+INSERT INTO `mentors` (`id`, `username`, `nama_mentor`, `email`, `pin`, `jabatan`, `failed_attempts`, `lockout_time`, `created_at`) VALUES
+(1, 'mentor.alvin', 'Dr. Alvin Nurfaiz, M.T.', 'mentor.alvin@utb.ac.id', '1234', 'Pembimbing Lapangan BRI', 0, NULL, '2026-06-01 08:00:00'),
+(2, 'mentor.bayuga', 'M. Yusman Bayuga, S.T., M.Kom.', 'mentor.bayuga@utb.ac.id', '1234', 'Pembimbing Akademik UTB', 0, NULL, '2026-06-01 08:00:00');
 
 
 -- --------------------------------------------------------
