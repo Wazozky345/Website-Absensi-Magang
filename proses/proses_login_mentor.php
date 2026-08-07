@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validasi CSRF
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
         $_SESSION['alert'] = ['type' => 'error', 'title' => 'Sesi Berakhir', 'message' => 'Permintaan tidak valid.'];
-        header("Location: ../login-mentor.php");
+        header("Location: login-mentor.php"); // FIX: Jalur sudah diluruskan
         exit;
     }
 
@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($username) || empty($pin)) {
         $_SESSION['alert'] = ['type' => 'warning', 'title' => 'Input Kosong', 'message' => 'Username dan PIN wajib diisi!'];
-        header("Location: ../login-mentor.php");
+        header("Location: login-mentor.php"); // FIX: Jalur sudah diluruskan
         exit;
     }
 
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($lockout_time != NULL && $lockout_time > $waktu_sekarang) {
                 $sisa_menit = ceil((strtotime($lockout_time) - strtotime($waktu_sekarang)) / 60);
                 $_SESSION['alert'] = ['type' => 'error', 'title' => 'Akun Terkunci!', 'message' => "Coba lagi dalam {$sisa_menit} menit."];
-                header("Location: ../login-mentor.php");
+                header("Location: login-mentor.php"); // FIX: Jalur sudah diluruskan
                 exit;
             } else {
                 // Reset hukuman kalau waktu sudah lewat
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['role'] = 'mentor';
 
                     $_SESSION['alert'] = ['type' => 'success', 'title' => 'Login Berhasil!', 'message' => 'Selamat datang!'];
-                    header("Location: ../mentor/dashboard.php"); // Perhatikan: ../mentor/dashboard.php
+                    header("Location: mentor/dashboard.php"); // FIX: Masuk ke folder mentor
                     exit;
                 } else {
                     $attempts = $failed_attempts + 1;
@@ -88,14 +88,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $sisa = 3 - $attempts;
                         $_SESSION['alert'] = ['type' => 'error', 'title' => 'PIN Salah!', 'message' => "Sisa kesempatan: {$sisa}x lagi."];
                     }
-                    header("Location: ../login-mentor.php");
+                    header("Location: login-mentor.php"); // FIX: Jalur sudah diluruskan
                     exit;
                 }
             }
         } else {
             // Username Tidak Ditemukan
             $_SESSION['alert'] = ['type' => 'error', 'title' => 'Gagal!', 'message' => 'Username tidak terdaftar!'];
-            header("Location: ../login-mentor.php");
+            header("Location: login-mentor.php"); // FIX: Jalur sudah diluruskan
             exit;
         }
     }
