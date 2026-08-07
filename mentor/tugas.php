@@ -404,6 +404,23 @@ if (empty($_SESSION['csrf_token'])) {
             if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
             if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
         });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+            // Logika Toggle yang lebih fleksibel (Tahan banting meskipun tidak ada overlay)
+            const toggleSidebar = () => {
+                if (sidebar) sidebar.classList.toggle('-translate-x-full');
+                if (sidebarOverlay) sidebarOverlay.classList.toggle('hidden');
+            };
+
+            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleSidebar);
+            if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+        });
     </script>
 </body>
 </html>
