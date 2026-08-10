@@ -178,15 +178,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
 // 3. LOGIKA MATEMATIKA RENDER KALENDER
-$bulan_aktif = isset($_GET['bulan']) ? sprintf('%02d', intval($_GET['bulan'])) : '07';
-$tahun_aktif = '2026';
+// Membaca bulan saat ini secara otomatis jika tidak ada request '?bulan=' dari URL
+$bulan_aktif = isset($_GET['bulan']) ? sprintf('%02d', intval($_GET['bulan'])) : date('m');
+$tahun_aktif = date('Y');
 
 // Konversi angka ke nama bulan
 $nama_bulan_indo = [
-    '07' => 'Juli 2026',
-    '08' => 'Agustus 2026',
-    '09' => 'September 2026',
-    '10' => 'Oktober 2026'
+    '07' => 'Juli ' . $tahun_aktif,
+    '08' => 'Agustus ' . $tahun_aktif,
+    '09' => 'September ' . $tahun_aktif,
+    '10' => 'Oktober ' . $tahun_aktif
 ];
 
 // Menghitung slot kosong dan total hari untuk tampilan grid kalender
