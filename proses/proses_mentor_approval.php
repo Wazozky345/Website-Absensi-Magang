@@ -3,6 +3,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Sembunyikan peringatan Deprecated PHP 8+ agar UI tidak terganggu
+error_reporting(E_ALL & ~E_DEPRECATED);
+
 require_once __DIR__ . '/../config/koneksi.php';
 
 // Validasi Hak Akses Mentor
@@ -98,10 +101,13 @@ $query_submission = $conn->query("
 
 if ($query_submission && $query_submission->num_rows > 0) {
     while ($row = $query_submission->fetch_assoc()) {
-        $jam_kirim = date('H:i:s', strtotime($row['waktu_kirim']));
         
+        // Pengecekan NULL-safe pada fungsi strtotime() untuk PHP 8.1+
+        $jam_kirim = !empty($row['waktu_kirim']) ? date('H:i:s', strtotime($row['waktu_kirim'])) : '00:00:00';
+        $sesi_batch = $row['sesi_batch'] ?? '';
+
         // Pengelompokan Batch berdasarkan Sesi atau Jam Kirim
-        if ($row['sesi_batch'] === 'Pagi' || $jam_kirim <= '12:00:00') {
+        if ($sesi_batch === 'Pagi' || ($jam_kirim !== '00:00:00' && $jam_kirim <= '12:00:00')) {
             $submission_pagi[] = $row;
         } else {
             $submission_sore[] = $row;
