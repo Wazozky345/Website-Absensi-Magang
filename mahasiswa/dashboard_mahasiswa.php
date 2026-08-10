@@ -103,7 +103,7 @@ require_once __DIR__ . '/../proses/proses_dashboard.php';
             <!-- DUA KOLOM: GRAFIK KEHADIRAN & AKSI HARI INI -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
 
-                <!-- GRAFIK KEHADIRAN (REDESAIN PRESISI SAMA SEPERTI GAMBAR) -->
+                <!-- GRAFIK KEHADIRAN -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 lg:col-span-2">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-lg font-bold text-gray-800">Grafik Kehadiran</h2>
@@ -449,11 +449,21 @@ require_once __DIR__ . '/../proses/proses_dashboard.php';
             // -----------------------------------------------------------------
             // 1. INSIALISASI GRAFIK KEHADIRAN (SAMA PERSIS DENGAN GAMBAR DESAIN)
             // -----------------------------------------------------------------
-            const dataKehadiranBulanan = <?php echo isset($json_grafik_hadir) ? $json_grafik_hadir : '[16, 5, 0, 0]'; ?>;
+            // Mengambil data JSON 12 bulan dari backend PHP
+            const dataKehadiranBulanan = <?php echo isset($json_grafik_hadir) ? $json_grafik_hadir : '[0,0,0,0,0,0,0,0,0,0,0,0]'; ?>;
             const ctx = document.getElementById('attendanceChart');
 
             if (ctx && typeof Chart !== 'undefined') {
                 const chartCtx = ctx.getContext('2d');
+                
+                // [MAINTENANCE]: Hancurkan instance chart lama jika ada untuk mencegah bug 'Canvas is already in use'
+                let existingChart = Chart.getChart(ctx);
+                if (existingChart != undefined) {
+                    existingChart.destroy();
+                }
+
+                // [LOGIKA]: Memotong array 12 bulan dari backend untuk mengambil data magang dari Juli (index 6) sampai Oktober (index 9)
+                const dataMagang = dataKehadiranBulanan.slice(6, 10);
                 
                 // Gradient Fill Biru Muda Transparan
                 const gradient = chartCtx.createLinearGradient(0, 0, 0, 250);
@@ -466,7 +476,7 @@ require_once __DIR__ . '/../proses/proses_dashboard.php';
                         labels: ['Jul', 'Ags', 'Sep', 'Okt'],
                         datasets: [{
                             label: 'Jumlah Kehadiran',
-                            data: dataKehadiranBulanan.length === 4 ? dataKehadiranBulanan : [16, 5, 0, 0],
+                            data: dataMagang, // Terhubung dinamis dengan database
                             borderColor: '#0084FF',
                             backgroundColor: gradient,
                             borderWidth: 2.5,
