@@ -23,16 +23,18 @@ date_default_timezone_set('Asia/Jakarta'); // Pastikan zona waktu benar
 
 // 1. Cek apakah user sudah login
 if (!isset($_SESSION['nama_user']) || !isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    // [FIX]: Menggunakan ../index.php agar keluar dari folder mahasiswa/mentor menuju root
+    header("Location: ../index.php");
     exit;
 }
 
-// 2. Cek Timeout (300 detik)
+// 2. Cek Timeout (300 detik / 5 Menit)
 $timeout_duration = 300; 
 if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout_duration) {
     session_unset();
     session_destroy();
-    header("Location: login.php");
+    // [FIX]: Hancurkan sesi dan lemparkan kembali ke Halaman Pemilihan Peran
+    header("Location: ../index.php");
     exit;
 }
 $_SESSION['last_activity'] = time();
