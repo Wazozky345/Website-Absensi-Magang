@@ -109,8 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Username Akses</label>
-                <input type="text" name="username" required placeholder="Contoh: mentor.alvin" 
+                <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Username Akses/PN</label>
+                <input type="text" name="username" required placeholder="Contoh: mentor.Budi 001122" 
                        value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>"
                        class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition font-semibold">
             </div>
