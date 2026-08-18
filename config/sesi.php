@@ -1,5 +1,9 @@
 <?php
 // ==========================================================
+// KEAMANAN LEVEL 1: PANGGIL SATPAM DDOS DI BARIS PALING PERTAMA
+// ==========================================================
+require_once __DIR__ . '/ddos_layer.php';
+// ==========================================================
 // KEAMANAN LEVEL 3: PRODUCTION MODE (Matikan Tampilan Error)
 // ==========================================================
 error_reporting(E_ALL);
