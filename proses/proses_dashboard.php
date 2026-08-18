@@ -31,17 +31,25 @@ $waktu_sekarang   = date('H:i:s');
 $hari_ini_angka   = date('N'); // 1 (Senin) - 7 (Minggu)
 
 // =========================================================================
-// LOGIKA DETEKSI TANGGAL MERAH OTOMATIS (API + LOCAL CACHE + AUTO CLEANUP)
+// LOGIKA DETEKSI TANGGAL MERAH OTOMATIS (API + LOCAL CACHE + FOLDER KHUSUS)
 // =========================================================================
 $tahun_sekarang = date('Y');
-$file_cache_libur = __DIR__ . "/../config/libur_nasional_{$tahun_sekarang}.json";
+
+// Tentukan jalur folder khusus untuk log API
+$dir_api_logs = __DIR__ . "/../config/api_logs";
+$file_cache_libur = $dir_api_logs . "/libur_nasional_{$tahun_sekarang}.json";
 $libur_nasional = [];
+
+// Otomatis buat folder api_logs jika belum ada (Permission 0755)
+if (!is_dir($dir_api_logs)) {
+    mkdir($dir_api_logs, 0755, true);
+}
 
 if (file_exists($file_cache_libur)) {
     $libur_nasional = json_decode(file_get_contents($file_cache_libur), true) ?? [];
 } else {
-    // FITUR TUKANG SAPU: Hapus file cache tahun-tahun sebelumnya
-    $file_lama = glob(__DIR__ . "/../config/libur_nasional_*.json");
+    // FITUR TUKANG SAPU: Hapus file cache usang di dalam folder api_logs
+    $file_lama = glob($dir_api_logs . "/libur_nasional_*.json");
     if ($file_lama) {
         foreach ($file_lama as $file) {
             if ($file !== $file_cache_libur && is_file($file)) {
@@ -58,38 +66,32 @@ if (file_exists($file_cache_libur)) {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10); 
 
-    // --- DETEKSI LINGKUNGAN (LOCALHOST VS HOSTING) ---
+    // DETEKSI LINGKUNGAN (BUNGLON)
     $is_localhost = in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1']);
-
     if ($is_localhost) {
-        // SKENARIO 1: Berjalan di XAMPP (Local)
-        // Matikan verifikasi SSL karena XAMPP tidak punya sertifikat bawaan
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false); 
     } else {
-        // SKENARIO 2: Berjalan di Hosting (InfinityFree / Live Server)
-        // Aktifkan verifikasi SSL untuk keamanan maksimal (Standar Industri)
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); 
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2); 
     }
-    // -------------------------------------------------
 
     $response = curl_exec($ch);
     curl_close($ch);
 
     if ($response) {
         $data_api = json_decode($response, true);
-        if (is_array($data_api)) {
+        if (is_array($data_api) && !empty($data_api)) {
             foreach ($data_api as $libur) {
-                if (isset($libur['is_cuti']) && $libur['is_cuti'] === false) {
+                if (isset($libur['is_cuti']) && $libur['is_cuti'] == false) {
                     $libur_nasional[] = $libur['tanggal'];
                 }
             }
-            if (!empty($libur_nasional)) {
-                file_put_contents($file_cache_libur, json_encode($libur_nasional));
-            }
         }
     }
+
+    // Selalu buat file JSON sebagai "gembok" agar tidak spam API
+    file_put_contents($file_cache_libur, json_encode($libur_nasional));
 }
 // =========================================================================
 
