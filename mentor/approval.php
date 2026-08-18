@@ -1,5 +1,5 @@
 <?php
-// Memanggil otak proses_mentor_approval.php
+// Memanggil backend pengolah approval
 require_once __DIR__ . '/../proses/proses_mentor_approval.php';
 ?>
 <!DOCTYPE html>
@@ -8,7 +8,7 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Approval Tugas Mahasiswa - UTB Tracker</title>
+    <title>Approval & Paraf Logbook / Tugas - UTB Tracker</title>
     <link rel="stylesheet" href="../assets/style.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -35,34 +35,34 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
                     </svg>
                 </button>
                 <div>
-                    <h2 class="text-base font-bold text-gray-800">Approval Tugas Mahasiswa</h2>
-                    <p class="text-xs text-gray-400">Review & validasi tugas harian (Batch Sesi Pagi & Sore)</p>
+                    <h2 class="text-base font-bold text-gray-800">Approval & Paraf Logbook Mahasiswa</h2>
+                    <p class="text-xs text-gray-400">Review, validasi, dan pembubuhan paraf digital (Batch Sesi Pagi & Sore)</p>
                 </div>
             </div>
 
             <div class="flex items-center gap-3">
                 <div class="text-right hidden sm:block">
-                    <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor); ?></p>
+                    <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor ?? 'Mentor'); ?></p>
                     <p class="text-[10px] text-gray-400">Pembimbing Lapangan</p>
                 </div>
-                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($nama_mentor); ?>&background=2563eb&color=ffffff&size=128" class="w-9 h-9 rounded-full border-2 border-blue-100">
+                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($nama_mentor ?? 'Mentor'); ?>&background=2563eb&color=ffffff&size=128" class="w-9 h-9 rounded-full border-2 border-blue-100">
             </div>
         </header>
 
         <div class="p-4 md:p-8 space-y-6">
 
-            <!-- BATCH 1: TUGAS MASUK SESI PAGI (S.D 12.00 WIB) -->
+            <!-- BATCH 1: SESI PAGI (S.D 12.00 WIB) -->
             <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 pb-3 border-b border-gray-100">
                     <div class="flex items-center gap-2.5">
                         <span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">☀️</span>
                         <div>
-                            <h3 class="text-base font-bold text-gray-800">Tugas Masuk - Sesi Pagi</h3>
-                            <p class="text-[10px] text-gray-400">Batch review tugas s.d. 12:00 WIB</p>
+                            <h3 class="text-base font-bold text-gray-800">Logbook / Tugas Masuk - Sesi Pagi</h3>
+                            <p class="text-[10px] text-gray-400">Batch review s.d. 12:00 WIB</p>
                         </div>
                     </div>
                     <span class="bg-amber-50 text-amber-700 font-bold text-xs px-3 py-1 rounded-full">
-                        <?php echo count($submission_pagi); ?> Berkas Masuk
+                        <?php echo count($submission_pagi ?? []); ?> Berkas Masuk
                     </span>
                 </div>
 
@@ -71,8 +71,8 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
                         <thead>
                             <tr class="text-gray-400 font-semibold border-b border-gray-100 pb-3">
                                 <th class="py-2.5">Mahasiswa</th>
-                                <th class="py-2.5">Judul Tugas</th>
-                                <th class="py-2.5">File Dikirim</th>
+                                <th class="py-2.5">Judul Logbook/Tugas</th>
+                                <th class="py-2.5">File Lampiran</th>
                                 <th class="py-2.5">Waktu Kirim</th>
                                 <th class="py-2.5 text-center">Status</th>
                                 <th class="py-2.5 text-center">Aksi Mentor</th>
@@ -81,43 +81,44 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
                         <tbody class="divide-y divide-gray-50 text-gray-700">
                             <?php if (!empty($submission_pagi)): ?>
                                 <?php foreach ($submission_pagi as $sp): 
-                                    $file_path = "../uploads/tugas_mahasiswa/" . htmlspecialchars($sp['file_balasan']);
+                                    $file_path = "../uploads/tugas_mahasiswa/" . htmlspecialchars($sp['file_balasan'] ?? '');
                                     $has_file  = !empty($sp['file_balasan']) && file_exists($file_path);
 
                                     $status_class = 'bg-amber-50 text-amber-600';
-                                    if ($sp['status_approval'] === 'Disetujui') $status_class = 'bg-emerald-50 text-emerald-600';
-                                    elseif ($sp['status_approval'] === 'Perlu Revisi') $status_class = 'bg-rose-50 text-rose-600';
+                                    if (($sp['status_approval'] ?? '') === 'Disetujui') $status_class = 'bg-emerald-50 text-emerald-600';
+                                    elseif (($sp['status_approval'] ?? '') === 'Perlu Revisi') $status_class = 'bg-rose-50 text-rose-600';
                                 ?>
                                     <tr class="hover:bg-gray-50/50 transition">
                                         <td class="py-3">
                                             <p class="font-bold text-gray-800"><?php echo htmlspecialchars($sp['nama_user']); ?></p>
-                                            <p class="text-[10px] text-gray-400"><?php echo htmlspecialchars($sp['nim']); ?></p>
+                                            <p class="text-[10px] text-gray-400"><?php echo htmlspecialchars($sp['nim'] ?? '-'); ?></p>
                                         </td>
-                                        <td class="py-3 font-semibold text-gray-700 max-w-xs truncate"><?php echo htmlspecialchars($sp['judul_tugas']); ?></td>
+                                        <td class="py-3 font-semibold text-gray-700 max-w-xs truncate"><?php echo htmlspecialchars($sp['judul_tugas'] ?? 'Logbook Harian'); ?></td>
                                         <td class="py-3">
                                             <?php if ($has_file): ?>
                                                 <a href="<?php echo $file_path; ?>" download class="text-blue-600 font-semibold hover:underline flex items-center gap-1">
                                                     📄 <?php echo htmlspecialchars($sp['file_balasan']); ?>
                                                 </a>
                                             <?php else: ?>
-                                                <span class="text-gray-300 italic">Berkas tidak ditemukan</span>
+                                                <span class="text-gray-300 italic">Tanpa Berkas</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="py-3 text-gray-500"><?php echo date('H:i', strtotime($sp['waktu_kirim'])); ?> WIB</td>
+                                        <td class="py-3 text-gray-500"><?php echo date('H:i', strtotime($sp['waktu_kirim'] ?? 'now')); ?> WIB</td>
                                         <td class="py-3 text-center">
                                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold <?php echo $status_class; ?>">
-                                                <?php echo htmlspecialchars($sp['status_approval']); ?>
+                                                <?php echo htmlspecialchars($sp['status_approval'] ?? 'Pending'); ?>
                                             </span>
                                         </td>
-                                        <td class="py-3 text-center space-x-1.5">
-                                            <button onclick="prosesApproval('<?php echo $sp['id']; ?>', '<?php echo addslashes($sp['nama_user']); ?>', 'Setujui')" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl transition">Setujui</button>
-                                            <button onclick="prosesApproval('<?php echo $sp['id']; ?>', '<?php echo addslashes($sp['nama_user']); ?>', 'Revisi')" class="bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl transition">Minta Revisi</button>
+                                        <td class="py-3 text-center">
+                                            <button onclick="bukaModalApproval('<?php echo $sp['id']; ?>', '<?php echo addslashes($sp['nama_user']); ?>', '<?php echo addslashes($sp['judul_tugas'] ?? 'Logbook Harian'); ?>')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl transition shadow-sm text-[11px]">
+                                                Verifikasi & Paraf
+                                            </button>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="6" class="py-6 text-center text-gray-400 font-medium">Belum ada tugas masuk di sesi pagi.</td>
+                                    <td colspan="6" class="py-6 text-center text-gray-400 font-medium">Belum ada logbook/tugas masuk di sesi pagi.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -125,18 +126,18 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
                 </div>
             </div>
 
-            <!-- BATCH 2: TUGAS MASUK SESI SORE (S.D 17.00 WIB) -->
+            <!-- BATCH 2: SESI SORE (S.D 17.00 WIB) -->
             <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 pb-3 border-b border-gray-100">
                     <div class="flex items-center gap-2.5">
                         <span class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm">🌙</span>
                         <div>
-                            <h3 class="text-base font-bold text-gray-800">Tugas Masuk - Sesi Sore</h3>
-                            <p class="text-[10px] text-gray-400">Batch review tugas s.d. 17:00 WIB</p>
+                            <h3 class="text-base font-bold text-gray-800">Logbook / Tugas Masuk - Sesi Sore</h3>
+                            <p class="text-[10px] text-gray-400">Batch review s.d. 17:00 WIB</p>
                         </div>
                     </div>
                     <span class="bg-purple-50 text-purple-700 font-bold text-xs px-3 py-1 rounded-full">
-                        <?php echo count($submission_sore); ?> Berkas Masuk
+                        <?php echo count($submission_sore ?? []); ?> Berkas Masuk
                     </span>
                 </div>
 
@@ -145,8 +146,8 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
                         <thead>
                             <tr class="text-gray-400 font-semibold border-b border-gray-100 pb-3">
                                 <th class="py-2.5">Mahasiswa</th>
-                                <th class="py-2.5">Judul Tugas</th>
-                                <th class="py-2.5">File Dikirim</th>
+                                <th class="py-2.5">Judul Logbook/Tugas</th>
+                                <th class="py-2.5">File Lampiran</th>
                                 <th class="py-2.5">Waktu Kirim</th>
                                 <th class="py-2.5 text-center">Status</th>
                                 <th class="py-2.5 text-center">Aksi Mentor</th>
@@ -155,43 +156,44 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
                         <tbody class="divide-y divide-gray-50 text-gray-700">
                             <?php if (!empty($submission_sore)): ?>
                                 <?php foreach ($submission_sore as $ss): 
-                                    $file_path = "../uploads/tugas_mahasiswa/" . htmlspecialchars($ss['file_balasan']);
+                                    $file_path = "../uploads/tugas_mahasiswa/" . htmlspecialchars($ss['file_balasan'] ?? '');
                                     $has_file  = !empty($ss['file_balasan']) && file_exists($file_path);
 
                                     $status_class = 'bg-amber-50 text-amber-600';
-                                    if ($ss['status_approval'] === 'Disetujui') $status_class = 'bg-emerald-50 text-emerald-600';
-                                    elseif ($ss['status_approval'] === 'Perlu Revisi') $status_class = 'bg-rose-50 text-rose-600';
+                                    if (($ss['status_approval'] ?? '') === 'Disetujui') $status_class = 'bg-emerald-50 text-emerald-600';
+                                    elseif (($ss['status_approval'] ?? '') === 'Perlu Revisi') $status_class = 'bg-rose-50 text-rose-600';
                                 ?>
                                     <tr class="hover:bg-gray-50/50 transition">
                                         <td class="py-3">
                                             <p class="font-bold text-gray-800"><?php echo htmlspecialchars($ss['nama_user']); ?></p>
-                                            <p class="text-[10px] text-gray-400"><?php echo htmlspecialchars($ss['nim']); ?></p>
+                                            <p class="text-[10px] text-gray-400"><?php echo htmlspecialchars($ss['nim'] ?? '-'); ?></p>
                                         </td>
-                                        <td class="py-3 font-semibold text-gray-700 max-w-xs truncate"><?php echo htmlspecialchars($ss['judul_tugas']); ?></td>
+                                        <td class="py-3 font-semibold text-gray-700 max-w-xs truncate"><?php echo htmlspecialchars($ss['judul_tugas'] ?? 'Logbook Harian'); ?></td>
                                         <td class="py-3">
                                             <?php if ($has_file): ?>
                                                 <a href="<?php echo $file_path; ?>" download class="text-blue-600 font-semibold hover:underline flex items-center gap-1">
                                                     📝 <?php echo htmlspecialchars($ss['file_balasan']); ?>
                                                 </a>
                                             <?php else: ?>
-                                                <span class="text-gray-300 italic">Berkas tidak ditemukan</span>
+                                                <span class="text-gray-300 italic">Tanpa Berkas</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="py-3 text-gray-500"><?php echo date('H:i', strtotime($ss['waktu_kirim'])); ?> WIB</td>
+                                        <td class="py-3 text-gray-500"><?php echo date('H:i', strtotime($ss['waktu_kirim'] ?? 'now')); ?> WIB</td>
                                         <td class="py-3 text-center">
                                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold <?php echo $status_class; ?>">
-                                                <?php echo htmlspecialchars($ss['status_approval']); ?>
+                                                <?php echo htmlspecialchars($ss['status_approval'] ?? 'Pending'); ?>
                                             </span>
                                         </td>
-                                        <td class="py-3 text-center space-x-1.5">
-                                            <button onclick="prosesApproval('<?php echo $ss['id']; ?>', '<?php echo addslashes($ss['nama_user']); ?>', 'Setujui')" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl transition">Setujui</button>
-                                            <button onclick="prosesApproval('<?php echo $ss['id']; ?>', '<?php echo addslashes($ss['nama_user']); ?>', 'Revisi')" class="bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl transition">Minta Revisi</button>
+                                        <td class="py-3 text-center">
+                                            <button onclick="bukaModalApproval('<?php echo $ss['id']; ?>', '<?php echo addslashes($ss['nama_user']); ?>', '<?php echo addslashes($ss['judul_tugas'] ?? 'Logbook Harian'); ?>')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl transition shadow-sm text-[11px]">
+                                                Verifikasi & Paraf
+                                            </button>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="6" class="py-6 text-center text-gray-400 font-medium">Belum ada tugas masuk di sesi sore.</td>
+                                    <td colspan="6" class="py-6 text-center text-gray-400 font-medium">Belum ada logbook/tugas masuk di sesi sore.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -202,12 +204,62 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
         </div>
     </main>
 
+    <!-- MODAL APPROVAL & CANVAS PARAF -->
+    <div id="modalApprovalDialog" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black/50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-gray-100 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-base font-bold text-gray-800">Verifikasi Logbook / Tugas</h3>
+                <button onclick="tutupModalApproval()" class="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase block">Mahasiswa</span>
+                    <p id="modalNamaMahasiswa" class="font-bold text-gray-800 text-sm">-</p>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase block">Judul Logbook / Tugas</span>
+                    <p id="modalJudulTugas" class="font-medium text-gray-700 bg-gray-50 p-2.5 rounded-xl border border-gray-100">-</p>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Keputusan Mentor</label>
+                    <select id="modalKeputusan" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-blue-500">
+                        <option value="Disetujui">✅ Setujui (Oke)</option>
+                        <option value="Perlu Revisi">⚠️ Perlu Revisi</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Catatan Evaluasi Mentor</label>
+                    <textarea id="modalCatatan" rows="2" placeholder="Tuliskan apresiasi atau instruksi perbaikan..." class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block font-bold text-gray-700">Paraf Digital Mentor</label>
+                        <button type="button" onclick="clearCanvas()" class="text-[10px] text-rose-500 font-bold hover:underline">Hapus Goresan</button>
+                    </div>
+                    <div class="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                        <canvas id="canvasParaf" width="380" height="110" class="w-full touch-none cursor-crosshair"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t">
+                <button type="button" onclick="tutupModalApproval()" class="px-4 py-2 text-xs font-bold text-gray-500 rounded-xl border border-gray-200 hover:bg-gray-50">Batal</button>
+                <button type="button" onclick="kirimApproval()" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md">Simpan Approval</button>
+            </div>
+        </div>
+    </div>
+
     <!-- FORM POST APPROVAL HIDDEN -->
     <form id="formApprovalSubmit" method="POST" action="../proses/proses_mentor_approval.php" class="hidden">
         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
         <input type="hidden" name="id_tugas" id="postTugasId">
-        <input type="hidden" name="keputusan" id="postKeputusan">
+        <input type="hidden" name="status_approval" id="postKeputusan">
         <input type="hidden" name="catatan_mentor" id="postCatatanMentor">
+        <input type="hidden" name="paraf_base64" id="postParafBase64">
     </form>
 
     <?php 
@@ -217,80 +269,71 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
     ?>
 
     <script>
-        function prosesApproval(id, nama, jenis) {
-            if (jenis === 'Setujui') {
-                Swal.fire({
-                    title: 'Setujui Tugas?',
-                    text: 'Tugas milik ' + nama + ' akan ditandai Disetujui.',
-                    icon: 'question',
-                    input: 'text',
-                    inputPlaceholder: 'Catatan apresiasi/petunjuk (opsional)',
-                    showCancelButton: true,
-                    confirmButtonText: 'Ya, Setujui',
-                    cancelButtonText: 'Batal',
-                    confirmButtonColor: '#10b981'
-                }).then((res) => {
-                    if (res.isConfirmed) {
-                        document.getElementById('postTugasId').value = id;
-                        document.getElementById('postKeputusan').value = 'Disetujui';
-                        document.getElementById('postCatatanMentor').value = res.value || 'Sudah sesuai, lanjut ke tahap berikutnya.';
-                        document.getElementById('formApprovalSubmit').submit();
-                    }
-                });
-            } else {
-                Swal.fire({
-                    title: 'Minta Revisi Tugas?',
-                    text: 'Berikan alasan perbaikan untuk ' + nama,
-                    icon: 'warning',
-                    input: 'textarea',
-                    inputPlaceholder: 'Tuliskan bagian yang perlu diperbaiki...',
-                    inputValidator: (value) => {
-                        if (!value) {
-                            return 'Catatan revisi wajib diisi!';
-                        }
-                    },
-                    showCancelButton: true,
-                    confirmButtonText: 'Kirim Instruksi Revisi',
-                    cancelButtonText: 'Batal',
-                    confirmButtonColor: '#e11d48'
-                }).then((res) => {
-                    if (res.isConfirmed) {
-                        document.getElementById('postTugasId').value = id;
-                        document.getElementById('postKeputusan').value = 'Perlu Revisi';
-                        document.getElementById('postCatatanMentor').value = res.value;
-                        document.getElementById('formApprovalSubmit').submit();
-                    }
-                });
-            }
+        // LOGIKA CANVAS PARAF DIGITAL
+        const canvas = document.getElementById('canvasParaf');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
         }
 
-        // SCRIPT DRAWER MOBILE
+        function startDraw(e) { isDrawing = true; const pos = getPos(e); ctx.beginPath(); ctx.moveTo(pos.x, pos.y); }
+        function draw(e) { if (!isDrawing) return; const pos = getPos(e); ctx.lineTo(pos.x, pos.y); ctx.stroke(); }
+        function stopDraw() { isDrawing = false; }
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDraw);
+        canvas.addEventListener('touchstart', startDraw);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDraw);
+
+        function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+        function bukaModalApproval(id, nama, judul) {
+            document.getElementById('postTugasId').value = id;
+            document.getElementById('modalNamaMahasiswa').innerText = nama;
+            document.getElementById('modalJudulTugas').innerText = judul;
+            document.getElementById('modalCatatan').value = '';
+            clearCanvas();
+            document.getElementById('modalApprovalDialog').classList.remove('hidden');
+        }
+
+        function tutupModalApproval() {
+            document.getElementById('modalApprovalDialog').classList.add('hidden');
+        }
+
+        function kirimApproval() {
+            const status = document.getElementById('modalKeputusan').value;
+            const catatan = document.getElementById('modalCatatan').value;
+            const parafData = canvas.toDataURL('image/png');
+
+            if (status === 'Perlu Revisi' && !catatan.trim()) {
+                Swal.fire('Perhatian', 'Catatan evaluasi wajib diisi jika meminta revisi!', 'warning');
+                return;
+            }
+
+            document.getElementById('postKeputusan').value = status;
+            document.getElementById('postCatatanMentor').value = catatan;
+            document.getElementById('postParafBase64').value = parafData;
+            document.getElementById('formApprovalSubmit').submit();
+        }
+
+        // SCRIPT DRAWER MOBILE (HAMBURGER MENU)
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.getElementById('sidebar');
             const mobileMenuBtn = document.getElementById('mobileMenuBtn');
             const closeSidebarBtn = document.getElementById('closeSidebarBtn');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
 
-            const toggleSidebar = () => {
-                if (sidebar && sidebarOverlay) {
-                    sidebar.classList.toggle('-translate-x-full');
-                    sidebarOverlay.classList.toggle('hidden');
-                }
-            };
-
-            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleSidebar);
-            if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
-            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
-        });
-
-        <!-- SCRIPT DRAWER MOBILE (HAMBURGER MENU) -->
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar');
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-
-            // Logika Toggle yang lebih fleksibel (Tahan banting meskipun tidak ada overlay)
             const toggleSidebar = () => {
                 if (sidebar) sidebar.classList.toggle('-translate-x-full');
                 if (sidebarOverlay) sidebarOverlay.classList.toggle('hidden');

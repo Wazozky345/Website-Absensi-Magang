@@ -55,17 +55,21 @@ CREATE TABLE `kehadiran` (
   `waktu_keluar` time DEFAULT NULL, 
   `status` enum('Hadir','Sakit','Izin','Lembur') NOT NULL, 
   `catatan` text DEFAULT NULL, 
+  `status_approval` enum('Pending','Disetujui','Perlu Revisi') DEFAULT 'Pending', -- BARU: Status persetujuan logbook presensi
+  `catatan_mentor` text DEFAULT NULL, -- BARU: Catatan evaluasi dari mentor
+  `paraf_mentor` longtext DEFAULT NULL COMMENT 'Menyimpan format base64 gambar paraf', -- BARU: Gambar paraf digital Base64
+  `waktu_approval` datetime DEFAULT NULL, -- BARU: Waktu penandatanganan/approval
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `fk_user_kehadiran` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Data Awal Presensi Harian
-INSERT INTO `kehadiran` (`id`, `user_id`, `tanggal`, `waktu_masuk`, `waktu_keluar`, `status`, `catatan`) VALUES
-(1, 1, '2026-08-01', '07:45:00', '16:05:00', 'Hadir', 'Presensi tepat waktu di kantor cabang'),
-(2, 2, '2026-08-01', '07:50:00', '16:10:00', 'Hadir', 'Pengerjaan prototype UI modul logbook'),
-(3, 1, '2026-08-03', '07:41:00', NULL, 'Hadir', 'Presensi masuk hari ini'),
-(4, 2, '2026-08-03', '08:22:00', NULL, 'Hadir', 'Presensi sesi pagi');
+INSERT INTO `kehadiran` (`id`, `user_id`, `tanggal`, `waktu_masuk`, `waktu_keluar`, `status`, `catatan`, `status_approval`, `catatan_mentor`, `paraf_mentor`, `waktu_approval`) VALUES
+(1, 1, '2026-08-01', '07:45:00', '16:05:00', 'Hadir', 'Presensi tepat waktu di kantor cabang', 'Pending', NULL, NULL, NULL), -- BARU: Penyesuaian data awal kolom approval & paraf
+(2, 2, '2026-08-01', '07:50:00', '16:10:00', 'Hadir', 'Pengerjaan prototype UI modul logbook', 'Pending', NULL, NULL, NULL), -- BARU: Penyesuaian data awal kolom approval & paraf
+(3, 1, '2026-08-03', '07:41:00', NULL, 'Hadir', 'Presensi masuk hari ini', 'Pending', NULL, NULL, NULL), -- BARU: Penyesuaian data awal kolom approval & paraf
+(4, 2, '2026-08-03', '08:22:00', NULL, 'Hadir', 'Presensi sesi pagi', 'Pending', NULL, NULL, NULL); -- BARU: Penyesuaian data awal kolom approval & paraf
 
 
 -- --------------------------------------------------------
@@ -204,6 +208,7 @@ CREATE TABLE `tugas_detail` (
   `waktu_kirim` datetime DEFAULT NULL,
   `status_approval` enum('Menunggu Review','Disetujui','Perlu Revisi','Belum Ada Berkas') NOT NULL DEFAULT 'Menunggu Review',
   `catatan_mentor` text DEFAULT NULL,
+  `paraf_mentor` longtext DEFAULT NULL COMMENT 'Menyimpan format base64 gambar paraf', -- BARU: Penambahan kolom simpan paraf digital Base64
   `sesi_batch` enum('Pagi','Sore') DEFAULT 'Pagi',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -214,6 +219,6 @@ CREATE TABLE `tugas_detail` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Data Awal Submission & Approval Tugas
-INSERT INTO `tugas_detail` (`id`, `tugas_id`, `user_id`, `file_balasan`, `waktu_kirim`, `status_approval`, `catatan_mentor`, `sesi_batch`, `updated_at`) VALUES
-(1, 1, 1, 'tugas_rangga_w7.pdf', '2026-08-03 08:14:00', 'Menunggu Review', NULL, 'Pagi', '2026-08-03 08:14:00'),
-(2, 1, 2, 'bab2_revisi_bayuga.docx', '2026-08-03 15:22:00', 'Menunggu Review', NULL, 'Sore', '2026-08-03 15:22:00');
+INSERT INTO `tugas_detail` (`id`, `tugas_id`, `user_id`, `file_balasan`, `waktu_kirim`, `status_approval`, `catatan_mentor`, `paraf_mentor`, `sesi_batch`, `updated_at`) VALUES
+(1, 1, 1, 'tugas_rangga_w7.pdf', '2026-08-03 08:14:00', 'Menunggu Review', NULL, NULL, 'Pagi', '2026-08-03 08:14:00'), -- BARU: Penyesuaian data awal kolom paraf_mentor
+(2, 1, 2, 'bab2_revisi_bayuga.docx', '2026-08-03 15:22:00', 'Menunggu Review', NULL, NULL, 'Sore', '2026-08-03 15:22:00'); -- BARU: Penyesuaian data awal kolom paraf_mentor

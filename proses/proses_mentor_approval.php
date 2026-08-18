@@ -3,7 +3,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Sembunyikan peringatan Deprecated PHP 8+ agar UI tidak terganggu
+// Set zona waktu Indonesia & sembunyikan peringatan Deprecated PHP 8+
+date_default_timezone_set('Asia/Jakarta');
 error_reporting(E_ALL & ~E_DEPRECATED);
 
 require_once __DIR__ . '/../config/koneksi.php';
@@ -22,7 +23,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // =========================================================================
-// 1. LOGIKA PENERIMAAN AKSI (POST) - SETUJUI / REVISI TUGAS
+// 1. LOGIKA PENERIMAAN AKSI (POST) - SETUJUI / REVISI TUGAS & SIMPAN PARAF
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -37,9 +38,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $id_tugas_detail = intval($_POST['id_tugas'] ?? 0);
-    $keputusan       = trim($_POST['keputusan'] ?? '');
+    // Ambil data dari Form (Fleksibel mendukung 'status_approval' maupun 'keputusan')
+    $id_tugas_detail = intval($_POST['id_tugas'] ?? $_POST['id_tugas_detail'] ?? 0);
+    $keputusan       = trim($_POST['status_approval'] ?? $_POST['keputusan'] ?? '');
     $catatan_mentor  = trim($_POST['catatan_mentor'] ?? '');
+    $paraf_base64    = trim($_POST['paraf_base64'] ?? '');
 
     if ($id_tugas_detail <= 0 || !in_array($keputusan, ['Disetujui', 'Perlu Revisi'])) {
         $_SESSION['alert'] = [
@@ -51,13 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Update Status Approval dan Catatan Penilaian
-    $stmt = $conn->prepare("UPDATE tugas_detail SET status_approval = ?, catatan_mentor = ?, updated_at = NOW() WHERE id = ?");
+    // Update Status Approval, Catatan Penilaian, dan Paraf Digital Mentor
+    $stmt = $conn->prepare("UPDATE tugas_detail SET status_approval = ?, catatan_mentor = ?, paraf_mentor = ?, updated_at = NOW() WHERE id = ?");
     if ($stmt) {
-        $stmt->bind_param("ssi", $keputusan, $catatan_mentor, $id_tugas_detail);
+        $stmt->bind_param("sssi", $keputusan, $catatan_mentor, $paraf_base64, $id_tugas_detail);
 
         if ($stmt->execute()) {
-            $pesan_status = ($keputusan === 'Disetujui') ? 'Tugas mahasiswa berhasil disetujui.' : 'Instruksi revisi telah dikirim ke mahasiswa.';
+            $pesan_status = ($keputusan === 'Disetujui') ? 'Logbook/tugas berhasil disetujui & diparaf.' : 'Instruksi revisi telah dikirim ke mahasiswa.';
             $_SESSION['alert'] = [
                 'type' => 'success',
                 'title' => 'Keputusan Disimpan!',
@@ -67,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['alert'] = [
                 'type' => 'error',
                 'title' => 'Gagal Memproses',
-                'message' => 'Terjadi kesalahan sistem saat memperbarui keputusan.'
+                'message' => 'Terjadi kesalahan sistem: ' . $stmt->error
             ];
         }
 
