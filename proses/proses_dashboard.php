@@ -56,7 +56,24 @@ if (file_exists($file_cache_libur)) {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url_api);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5); 
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10); 
+
+    // --- DETEKSI LINGKUNGAN (LOCALHOST VS HOSTING) ---
+    $is_localhost = in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1']);
+
+    if ($is_localhost) {
+        // SKENARIO 1: Berjalan di XAMPP (Local)
+        // Matikan verifikasi SSL karena XAMPP tidak punya sertifikat bawaan
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false); 
+    } else {
+        // SKENARIO 2: Berjalan di Hosting (InfinityFree / Live Server)
+        // Aktifkan verifikasi SSL untuk keamanan maksimal (Standar Industri)
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); 
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2); 
+    }
+    // -------------------------------------------------
+
     $response = curl_exec($ch);
     curl_close($ch);
 
