@@ -11,17 +11,22 @@ $query_user = $conn->query("SELECT * FROM users WHERE id = '$user_id'");
 $user_data = $query_user->fetch_assoc();
 
 // =========================================================================
-// LOGIKA DETEKSI TANGGAL MERAH OTOMATIS (API + LOCAL CACHE)
+// LOGIKA DETEKSI TANGGAL MERAH OTOMATIS (API + LOCAL CACHE + FOLDER KHUSUS)
 // =========================================================================
 $tahun_sekarang = date('Y');
-$file_cache_libur = __DIR__ . "/../config/libur_nasional_{$tahun_sekarang}.json";
+
+$dir_api_logs = __DIR__ . "/../config/api_logs";
+$file_cache_libur = $dir_api_logs . "/libur_nasional_{$tahun_sekarang}.json";
 $libur_nasional = [];
+
+if (!is_dir($dir_api_logs)) {
+    mkdir($dir_api_logs, 0755, true);
+}
 
 if (file_exists($file_cache_libur)) {
     $libur_nasional = json_decode(file_get_contents($file_cache_libur), true) ?? [];
 } else {
-    // FITUR TUKANG SAPU 
-    $file_lama = glob(__DIR__ . "/../config/libur_nasional_*.json");
+    $file_lama = glob($dir_api_logs . "/libur_nasional_*.json");
     if ($file_lama) {
         foreach ($file_lama as $file) {
             if ($file !== $file_cache_libur && is_file($file)) {
@@ -31,26 +36,36 @@ if (file_exists($file_cache_libur)) {
     }
 
     $url_api = "https://dayoffapi.vercel.app/api?year={$tahun_sekarang}";
+    
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url_api);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10); 
+
+    $is_localhost = in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1']);
+    if ($is_localhost) {
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false); 
+    } else {
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); 
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2); 
+    }
+
     $response = curl_exec($ch);
     curl_close($ch);
 
     if ($response) {
         $data_api = json_decode($response, true);
-        if (is_array($data_api)) {
+        if (is_array($data_api) && !empty($data_api)) {
             foreach ($data_api as $libur) {
-                if (isset($libur['is_cuti']) && $libur['is_cuti'] === false) {
+                if (isset($libur['is_cuti']) && $libur['is_cuti'] == false) {
                     $libur_nasional[] = $libur['tanggal'];
                 }
             }
-            if (!empty($libur_nasional)) {
-                file_put_contents($file_cache_libur, json_encode($libur_nasional));
-            }
         }
     }
+
+    file_put_contents($file_cache_libur, json_encode($libur_nasional));
 }
 // =========================================================================
 
