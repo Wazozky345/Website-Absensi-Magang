@@ -17,8 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validasi Input Sederhana
     if (empty($nama_mentor) || empty($username) || empty($pin)) {
         $error_msg = 'Semua kolom wajib diisi!';
-    } elseif (strlen($pin) < 4) {
-        $error_msg = 'PIN Keamanan minimal 4 angka!';
+    } elseif (strlen($pin) !== 4 || !ctype_digit($pin)) {
+        // Validasi ketat: PIN harus tepat 4 digit angka
+        $error_msg = 'PIN Keamanan harus terdiri dari tepat 4 digit angka!';
     } else {
         // 1. Cek apakah Username Mentor Sudah Ada
         $stmt_check = $conn->prepare("SELECT id FROM mentors WHERE username = ?");
@@ -30,7 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error_msg = 'Username sudah terdaftar! Gunakan username lain.';
         } else {
             // 2. Simpan Data Mentor Baru ke Database `mentors`
-            // Catatan: PIN disimpan langsung/hash sesuai standar database
             $stmt_insert = $conn->prepare("INSERT INTO mentors (username, nama_mentor, pin, jabatan) VALUES (?, ?, ?, 'Pembimbing Lapangan')");
             $stmt_insert->bind_param("sss", $username, $nama_mentor, $pin);
 
@@ -110,14 +110,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div>
                 <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Username Akses/PN</label>
-                <input type="text" name="username" required placeholder="Contoh: mentor.Budi 001122" 
+                <input type="text" name="username" required placeholder="Contoh: mentor.Budi" 
                        value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>"
                        class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition font-semibold">
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">PIN Keamanan (4 Angka)</label>
-                <input type="password" name="pin" maxlength="6" inputmode="numeric" required placeholder="••••" 
+                <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">PIN Keamanan (Tepat 4 Angka)</label>
+                <input type="password" name="pin" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" required placeholder="••••" 
                        class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition font-semibold tracking-widest">
             </div>
 
@@ -143,7 +143,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             timer: 1500,
             showConfirmButton: false
         }).then(() => {
-            // Arahkan langsung ke halaman Approval / Dashboard Mentor
             window.location.href = 'mentor/approval.php';
         });
     </script>
