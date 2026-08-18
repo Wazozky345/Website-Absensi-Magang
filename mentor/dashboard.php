@@ -45,7 +45,7 @@ require_once __DIR__ . '/../proses/proses_dashboard_mentor.php';
                 <button id="profileDropdownBtn" onclick="toggleProfileDropdown()" class="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-gray-100 transition focus:outline-none">
                     <div class="text-right hidden sm:block">
                         <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor); ?></p>
-                        <p class="text-[10px] text-gray-400">Pembimbing Lapangan</p>
+                        <p class="text-[10px] text-gray-400">Pembimbing Associate</p>
                     </div>
                     <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($nama_mentor); ?>&background=2563eb&color=ffffff&size=128" class="w-9 h-9 rounded-full border-2 border-blue-100 shadow-sm">
                 </button>
