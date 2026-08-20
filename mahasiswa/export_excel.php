@@ -1,25 +1,13 @@
 <?php
-// =========================================================================
-// CARA PAKAI (WAJIB DIBACA SEKALI):
-// 1. Extract fpdf-library.zip yang saya berikan, taruh folder "fpdf" (isinya
-//    fpdf.php + folder font/) SEJAJAR dengan file export_excel.php ini,
-//    di dalam folder yang sama (bukan di folder config, bukan di root project).
-//    Contoh struktur:
-//      /export/export_excel.php   <- file ini
-//      /export/fpdf/fpdf.php
-//      /export/fpdf/font/...
-// 2. TIDAK PERLU Composer / vendor/autoload.php sama sekali dengan versi ini.
-// =========================================================================
-
+// Jalur absolut langsung masuk ke folder config
 require_once __DIR__ . '/../config/sesi.php';
 require_once __DIR__ . '/../config/koneksi.php';
-require_once __DIR__ . '/fpdf/fpdf.php'; // <-- sesuaikan path ini kalau folder fpdf Anda taruh di lokasi lain
 
-// Helper: konversi teks UTF-8 (dari DB) ke encoding yang dipahami FPDF standar
-function txt($str) {
-    $str = (string) $str;
-    return @iconv('UTF-8', 'ISO-8859-1//TRANSLIT', $str) ?: $str;
-}
+// Panggil autoload composer Dompdf
+require_once __DIR__ . '/../Lib/dompdf/autoload.inc.php'; 
+
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 // Pastikan user_id terambil dari sesi
 $user_id = $_SESSION['user_id'] ?? 0;
@@ -29,11 +17,9 @@ $query_user = $conn->query("SELECT * FROM users WHERE id = '$user_id'");
 $user_data = $query_user->fetch_assoc();
 
 // =========================================================================
-// LOGIKA DETEKSI TANGGAL MERAH OTOMATIS (API + LOCAL CACHE + FOLDER KHUSUS)
-// (Tidak diubah dari versi asli)
+// LOGIKA DETEKSI TANGGAL MERAH
 // =========================================================================
 $tahun_sekarang = date('Y');
-
 $dir_api_logs = __DIR__ . "/../config/api_logs";
 $file_cache_libur = $dir_api_logs . "/libur_nasional_{$tahun_sekarang}.json";
 $libur_nasional = [];
@@ -45,31 +31,13 @@ if (!is_dir($dir_api_logs)) {
 if (file_exists($file_cache_libur)) {
     $libur_nasional = json_decode(file_get_contents($file_cache_libur), true) ?? [];
 } else {
-    $file_lama = glob($dir_api_logs . "/libur_nasional_*.json");
-    if ($file_lama) {
-        foreach ($file_lama as $file) {
-            if ($file !== $file_cache_libur && is_file($file)) {
-                @unlink($file);
-            }
-        }
-    }
-
     $url_api = "https://dayoffapi.vercel.app/api?year={$tahun_sekarang}";
-
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url_api);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-
-    $is_localhost = in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1']);
-    if ($is_localhost) {
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    } else {
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-    }
-
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10); 
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false); 
     $response = curl_exec($ch);
     curl_close($ch);
 
@@ -83,56 +51,13 @@ if (file_exists($file_cache_libur)) {
             }
         }
     }
-
     file_put_contents($file_cache_libur, json_encode($libur_nasional));
 }
-// =========================================================================
 
-// 2. Pengaturan Periode
-$periode_mulai = '2026-07-08';
-$periode_selesai = '2026-10-08';
-$hari_ini = date('Y-m-d');
-$jam_kerja = '07:30 - 16:30';
-
-function getHariKerja($start, $end, $libur_arr) {
-    $mulai = new DateTime($start);
-    $selesai = new DateTime($end);
-    $selesai->modify('+1 day');
-
-    $interval = DateInterval::createFromDateString('1 day');
-    $period = new DatePeriod($mulai, $interval, $selesai);
-
-    $hari_kerja = 0;
-    foreach ($period as $dt) {
-        $tgl_loop = $dt->format('Y-m-d');
-        if ($dt->format('N') <= 5 && !in_array($tgl_loop, $libur_arr)) {
-            $hari_kerja++;
-        }
-    }
-    return $hari_kerja;
-}
-
-$total_hari_kerja = getHariKerja($periode_mulai, $periode_selesai, $libur_nasional);
-$tgl_terlewati = ($hari_ini > $periode_selesai) ? $periode_selesai : $hari_ini;
-$hari_kerja_terlewati = getHariKerja($periode_mulai, $tgl_terlewati, $libur_nasional);
-
-$sisa_hari_kerja = $total_hari_kerja - $hari_kerja_terlewati;
-if ($sisa_hari_kerja < 0) $sisa_hari_kerja = 0;
-
-$progres = ($total_hari_kerja > 0) ? ($hari_kerja_terlewati / $total_hari_kerja) : 0;
-$progres_persen = round($progres * 100, 2) . '%';
-
-// 3. Statistik (tetap dihitung seperti versi asli, belum ditampilkan di lembar resmi ini)
-$stat_hadir = $conn->query("SELECT COUNT(id) as total FROM kehadiran WHERE user_id = '$user_id' AND status IN ('Hadir', 'Lembur')")->fetch_assoc()['total'];
-$stat_izin  = $conn->query("SELECT COUNT(id) as total FROM kehadiran WHERE user_id = '$user_id' AND status = 'Izin'")->fetch_assoc()['total'];
-$stat_sakit = $conn->query("SELECT COUNT(id) as total FROM kehadiran WHERE user_id = '$user_id' AND status = 'Sakit'")->fetch_assoc()['total'];
-$stat_alpha = 0;
-$stat_cuti  = 0;
-$stat_libur = $total_hari_kerja - ($stat_hadir + $stat_izin + $stat_sakit);
-
-// 4. Ambil riwayat absen lengkap
+// Ambil riwayat absen lengkap
 $query_absen = $conn->query("SELECT * FROM kehadiran WHERE user_id = '$user_id' ORDER BY tanggal ASC");
 
+// Fungsi penerjemah hari
 function getHariIndo(string $tanggal) {
     $hari_inggris = date('l', strtotime($tanggal));
     $daftar_hari = [
@@ -142,186 +67,209 @@ function getHariIndo(string $tanggal) {
     return $daftar_hari[$hari_inggris];
 }
 
-function formatTanggalIndo(string $tanggal) {
-    $bulan_array = [
-        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
-    ];
-    $ts = strtotime($tanggal);
-    return date('d', $ts) . ' ' . $bulan_array[(int) date('n', $ts)] . ' ' . date('Y', $ts);
-}
-
-// TODO: sesuaikan nama kolom berikut dengan skema database Anda yang sebenarnya
-$nim        = $user_data['nim'] ?? '';
-$nama       = $user_data['nama_user'] ?? '';
-$perusahaan = $user_data['perusahaan'] ?? '';
-$unit       = $user_data['unit'] ?? '';
-
-$tahun_awal   = (int) date('Y', strtotime($periode_mulai));
-$tahun_ajaran = $tahun_awal . '/' . ($tahun_awal + 1);
-
-// =========================================================================
-// KELAS PDF: menggambar kop surat resmi UTB (kotak logo + info + No Dokumen dst)
-// =========================================================================
-class AbsensiPDF extends FPDF
-{
-    public $noDokumen = '';
-    public $noRevisi = '';
-    public $tglBerlaku = '';
-
-    function HeaderBox()
-    {
-        $leftX = $this->lMargin;
-        $topY = $this->tMargin;
-        $fullW = $this->w - $this->lMargin - $this->rMargin;
-
-        $logoW = 28;
-        $metaW = 45;
-        $midW = $fullW - $logoW - $metaW;
-        $boxH = 28;
-        $rowH = $boxH / 3;
-
-        $this->Rect($leftX, $topY, $fullW, $boxH);
-        $this->Line($leftX + $logoW, $topY, $leftX + $logoW, $topY + $boxH);
-        $this->Line($leftX + $logoW + $midW, $topY, $leftX + $logoW + $midW, $topY + $boxH);
-        $this->Line($leftX + $logoW + $midW, $topY + $rowH, $leftX + $fullW, $topY + $rowH);
-        $this->Line($leftX + $logoW + $midW, $topY + 2 * $rowH, $leftX + $fullW, $topY + 2 * $rowH);
-        $this->Line($leftX + $logoW, $topY + 2 * $rowH, $leftX + $logoW + $midW, $topY + 2 * $rowH);
-
-        $this->SetXY($leftX, $topY);
-        $this->SetFont('Arial', 'B', 12);
-        $this->Cell($logoW, $boxH, txt('UTB'), 0, 0, 'C');
-        // Kalau Anda punya file logo (png/jpg), ganti baris di atas dengan:
-        // $this->Image(__DIR__.'/logo-utb.png', $leftX+7, $topY+9, 14);
-
-        $this->SetXY($leftX + $logoW, $topY + 2);
-        $this->SetFont('Arial', 'B', 10.5);
-        $this->Cell($midW, 5, txt('UNIVERSITAS TEKNOLOGI BANDUNG'), 0, 2, 'C');
-        $this->SetFont('Arial', '', 8);
-        $this->SetX($leftX + $logoW);
-        $this->Cell($midW, 4, txt('Jl Soekarno Hatta No.378 Telp. (022) 522-4000'), 0, 2, 'C');
-        $this->SetX($leftX + $logoW);
-        $this->Cell($midW, 4, txt('Bandung-40235 Jawa Barat'), 0, 2, 'C');
-
-        $this->SetXY($leftX + $logoW, $topY + 2 * $rowH);
-        $this->SetFont('Arial', 'B', 10);
-        $this->Cell($midW, $rowH, txt('ABSENSI KERJA PRAKTIK'), 0, 0, 'C');
-
-        $this->SetFont('Arial', '', 8);
-        $metaX = $leftX + $logoW + $midW + 2;
-        $this->SetXY($metaX, $topY + 2);
-        $this->Cell($metaW - 4, $rowH - 4, txt('No. Dokumen : ' . $this->noDokumen), 0, 0, 'L');
-        $this->SetXY($metaX, $topY + $rowH + 2);
-        $this->Cell($metaW - 4, $rowH - 4, txt('No. Revisi   : ' . $this->noRevisi), 0, 0, 'L');
-        $this->SetXY($metaX, $topY + 2 * $rowH + 2);
-        $this->Cell($metaW - 4, $rowH - 4, txt('Tgl. Berlaku : ' . $this->tglBerlaku), 0, 0, 'L');
-
-        $this->SetY($topY + $boxH + 4);
-    }
-}
-
-// =========================================================================
-// BUAT PDF
-// =========================================================================
-$pdf = new AbsensiPDF('P', 'mm', 'A4');
-$bottomMargin = 20; // harus sama dengan angka kedua di SetAutoPageBreak() di bawah
-$pdf->SetMargins(15, 15, 15);
-$pdf->SetAutoPageBreak(true, $bottomMargin);
-$pdf->AddPage();
-
-$pdf->HeaderBox(); // isi noDokumen/noRevisi/tglBerlaku di atas kalau perlu diisi
-
-$pdf->SetFont('Arial', 'B', 12);
-$pdf->Cell(0, 6, txt('LEMBAR ABSENSI KEHADIRAN KERJA PRAKTIK (KP)'), 0, 1, 'C');
-$pdf->SetFont('Arial', '', 10);
-$pdf->Cell(0, 5, txt('SEMESTER GANJIL/GENAP *'), 0, 1, 'C');
-$pdf->Cell(0, 5, txt('TAHUN AJARAN ' . $tahun_ajaran), 0, 1, 'C');
-$pdf->Ln(3);
-
-$pdf->SetFont('Arial', '', 10);
-$fullW = $pdf->GetPageWidth() - 30;
-$halfW = $fullW / 2;
-$pdf->Cell($halfW, 6, txt('NIM        : ' . $nim), 0, 0);
-$pdf->Cell($halfW, 6, txt('Perusahaan : ' . $perusahaan), 0, 1);
-$pdf->Cell($halfW, 6, txt('Nama       : ' . $nama), 0, 0);
-$pdf->Cell($halfW, 6, txt('Unit/Bagian : ' . $unit), 0, 1);
-$pdf->Ln(2);
-
-$colNo = 12; $colTgl = 38; $colParaf = 32;
-$colUraian = $fullW - $colNo - $colTgl - $colParaf;
-
-$pdf->SetFont('Arial', 'B', 9);
-$pdf->SetFillColor(219, 233, 245);
-$pdf->Cell($colNo, 8, 'No', 1, 0, 'C', true);
-$pdf->Cell($colTgl, 8, txt('Hari/Tanggal'), 1, 0, 'C', true);
-$pdf->Cell($colUraian, 8, txt('Uraian Kegiatan pada Perusahaan'), 1, 0, 'C', true);
-$pdf->Cell($colParaf, 8, txt('Paraf Pembina'), 1, 1, 'C', true);
-
-$pdf->SetFont('Arial', '', 8);
+// Looping isi tabel berdasarkan history absen database 
+$html_tabel_absen = '';
 $no = 1;
-if ($query_absen->num_rows > 0) {
-    while ($row = $query_absen->fetch_assoc()) {
-        $tgl = $row['tanggal'];
-        $hari_indo = getHariIndo($tgl);
-        $tgl_indo  = formatTanggalIndo($tgl);
-
-        $catatan = !empty($row['catatan']) ? $row['catatan'] : '';
-        $catatan = str_replace(["\r\n", "\r", "\n"], ' ', $catatan);
-
-        $uraian = $catatan;
-        if (!in_array($row['status'], ['Hadir', 'Lembur'])) {
-            $uraian = strtoupper($row['status']) . ($catatan !== '' ? ' - ' . $catatan : '');
-        }
-        if ($uraian === '') {
-            $uraian = '-';
-        }
-        $uraian = txt($uraian);
-
-        // Hitung tinggi baris otomatis berdasar panjang teks uraian
-        $lineH = 4;
-        $nb = ceil($pdf->GetStringWidth($uraian) / ($colUraian - 2));
-        $rowH = max(8, $nb * $lineH + 2);
-
-        // Page-break manual: kalau baris ini bakal kepotong, pindah halaman dulu
-        if ($pdf->GetY() + $rowH > $pdf->GetPageHeight() - $bottomMargin) {
-            $pdf->AddPage();
-            $pdf->SetFont('Arial', 'B', 9);
-            $pdf->Cell($colNo, 8, 'No', 1, 0, 'C', true);
-            $pdf->Cell($colTgl, 8, txt('Hari/Tanggal'), 1, 0, 'C', true);
-            $pdf->Cell($colUraian, 8, txt('Uraian Kegiatan pada Perusahaan'), 1, 0, 'C', true);
-            $pdf->Cell($colParaf, 8, txt('Paraf Pembina'), 1, 1, 'C', true);
-            $pdf->SetFont('Arial', '', 8);
-        }
-
-        $x = $pdf->GetX(); $y = $pdf->GetY();
-        $pdf->Cell($colNo, $rowH, $no, 1, 0, 'C');
-        $pdf->Cell($colTgl, $rowH, txt($hari_indo . ', ' . $tgl_indo), 1, 0, 'C');
-
-        $xUraian = $pdf->GetX(); $yUraian = $pdf->GetY();
-        $pdf->MultiCell($colUraian, $lineH, $uraian, 0);
-        $pdf->Rect($xUraian, $yUraian, $colUraian, $rowH);
-
-        $pdf->SetXY($xUraian + $colUraian, $y);
-        $pdf->Cell($colParaf, $rowH, '', 1, 1, 'C');
-        $pdf->SetXY($x, $y + $rowH);
-
-        $no++;
+if($query_absen->num_rows > 0) {
+    while($row = $query_absen->fetch_assoc()) {
+        $tgl_format = date('d-m-Y', strtotime($row['tanggal']));
+        $hari_indo = getHariIndo($row['tanggal']);
+        $catatan = !empty($row['catatan']) ? $row['catatan'] : '-';
+        
+        $html_tabel_absen .= '
+        <tr>
+            <td style="text-align:center;">' . $no++ . '</td>
+            <td style="text-align:center;">' . $hari_indo . ',<br>' . $tgl_format . '</td>
+            <td style="text-align:left; padding-left:5px;">' . htmlspecialchars($catatan) . '</td>
+            <td></td>
+        </tr>';
     }
 } else {
-    $pdf->Cell($fullW, 8, txt('Belum ada data absensi yang tercatat.'), 1, 1, 'C');
+    for ($i = 0; $i < 8; $i++) {
+        $html_tabel_absen .= '
+        <tr>
+            <td style="height: 25px;"></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>';
+    }
 }
 
-$pdf->Ln(4);
-$pdf->SetFont('Arial', '', 8);
-$pdf->MultiCell(0, 4, txt('Ket : *Coret salah satu, dilengkapi dengan tanda tangan Pembina kerja praktik dan stempel perusahaan.'));
+// =========================================================================
+// LOGIKA GAMBAR BASE 64 (MENGGUNAKAN __DIR__ DINAMIS)
+// =========================================================================
+// Mengambil path absolut otomatis dari root sistem
+$path_logo = realpath(__DIR__ . '/../assets/picture/logo_utb.png');
 
-$pdf->Ln(15);
-$pdf->SetFont('Arial', '', 10);
-$pdf->Cell(0, 5, txt('Pembina Kerja Praktik'), 0, 1);
-$pdf->Ln(15);
-$pdf->Cell(0, 5, '(..................................................)', 0, 1);
+// Fallback jika file sistem tidak mengenali pembacaan realpath (biasanya terjadi di beberapa OS)
+if (!$path_logo) {
+    $path_logo = __DIR__ . '/../assets/picture/logo_utb.png';
+}
 
-$filename = "Absensi_KP_" . str_replace(' ', '_', ($user_data['nama_user'] ?? 'Mahasiswa')) . ".pdf";
-$pdf->Output('D', $filename); // 'D' = auto-download. Ganti ke 'I' kalau mau tampil di tab browser dulu.
+if (file_exists($path_logo)) {
+    // Jika gambar ketemu, convert ke Base64
+    $type = pathinfo($path_logo, PATHINFO_EXTENSION);
+    $data_img = file_get_contents($path_logo);
+    $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data_img);
+    $logo_img = '<img src="' . $base64 . '" style="width: 75px; height: auto;">';
+} else {
+    // JIKA GAMBAR GAGAL DITEMUKAN, MUNCULKAN PESAN ERROR MERAH DI PDF
+    $logo_img = '<div style="color:red; font-weight:bold; font-size:10px;">
+                    GAMBAR GAGAL DIMUAT!<br>
+                    Path yang dicari:<br>' . htmlspecialchars($path_logo) . '
+                 </div>';
+}
+
+// =========================================================================
+// STRUKTUR HTML
+// =========================================================================
+$html = '
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+    @page { 
+        size: A4; 
+        margin: 15mm 20mm; 
+    }
+    
+    body {
+        font-family: "Times New Roman", Times, serif;
+        font-size: 11pt;
+        color: #000;
+        line-height: 1.2;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    
+    /* Layout Header Kop Surat */
+    .header-table td { border: 1px solid black; vertical-align: middle; }
+    .logo-cell { width: 22%; text-align: center; padding: 10px; }
+    .title-cell { width: 55%; text-align: center; }
+    .title-top { padding: 10px 5px; }
+    .title-bottom { border-top: 1px solid black; padding: 8px; }
+    .info-cell { width: 23%; font-size: 8.5pt; vertical-align: top; padding: 0; }
+    
+    .info-inner-table td { border: none; border-bottom: 1px solid black; padding: 4px; }
+    .info-inner-table tr:last-child td { border-bottom: none; }
+    
+    /* Layout Judul Dokumen */
+    .doc-title { text-align: center; font-weight: bold; font-size: 11pt; margin: 25px 0 35px 0; line-height: 1.5; }
+    
+    /* Layout Info Mahasiswa */
+    .student-info { margin-bottom: 10px; font-size: 11pt; border: none; }
+    .student-info td { border: none; padding: 2px 0; vertical-align: bottom; }
+    .col-label { width: 10%; }
+    .col-colon { width: 2%; }
+    .col-value { width: 38%; }
+    .col-label-right { width: 15%; }
+    
+    /* Layout Tabel Utama */
+    .absen-table th, .absen-table td { border: 1px solid black; padding: 8px 5px; font-size: 11pt; }
+    .absen-table th { background-color: #b4c6e7; font-weight: bold; text-align: center; }
+    
+    /* Layout Footer & TTD */
+    .footer-note { font-size: 9.5pt; margin-top: 8px; margin-bottom: 40px; }
+    .signature-box { float: right; width: 40%; text-align: center; font-size: 11pt; }
+</style>
+</head>
+<body>
+
+<!-- Kop Surat -->
+<table class="header-table">
+    <tr>
+        <td class="logo-cell">
+            ' . $logo_img . '
+        </td>
+        <td class="title-cell">
+            <div class="title-top">
+                <div style="font-size: 13pt; font-weight: bold; margin-bottom: 3px;">UNIVERSITAS TEKNOLOGI BANDUNG</div>
+                <div style="font-size: 10pt;">Jl Soekarno Hatta No.378 Telp. (022) 522-4000</div>
+                <div style="font-size: 10pt;">Bandung-40235 Jawa Barat</div>
+            </div>
+            <div class="title-bottom">
+                <div style="font-size: 12pt;">ABSENSI KERJA PRAKTIK</div>
+            </div>
+        </td>
+        <td class="info-cell">
+            <table class="info-inner-table">
+                <tr><td style="width: 45%;">No. Dokumen</td><td style="width: 5%;">:</td><td style="width: 50%;"></td></tr>
+                <tr><td>No. Revisi</td><td>:</td><td></td></tr>
+                <tr><td>Tgl. Berlaku</td><td>:</td><td></td></tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Judul Dokumen -->
+<div class="doc-title">
+    LEMBAR ABSENSI KEHADIRAN KERJA PRAKTIK (KP)<br>
+    SEMESTER GANJIL/GENAP *<br>
+    TAHUN AJARAN ............../..............
+</div>
+
+<!-- Informasi Mahasiswa -->
+<table class="student-info">
+    <tr>
+        <td class="col-label">NIM</td>
+        <td class="col-colon">:</td>
+        <td class="col-value">' . (isset($user_data['nim']) ? htmlspecialchars($user_data['nim']) : '.......................') . '</td>
+        <td class="col-label-right">Perusahaan</td>
+        <td class="col-colon">:</td>
+        <td class="col-value">' . (isset($user_data['perusahaan']) ? htmlspecialchars($user_data['perusahaan']) : '.......................') . '</td>
+    </tr>
+    <tr>
+        <td class="col-label">Nama</td>
+        <td class="col-colon">:</td>
+        <td class="col-value">' . htmlspecialchars($user_data['nama_user']) . '</td>
+        <td class="col-label-right">Unit/Bagian</td>
+        <td class="col-colon">:</td>
+        <td class="col-value">' . (isset($user_data['unit_bagian']) ? htmlspecialchars($user_data['unit_bagian']) : '.......................') . '</td>
+    </tr>
+</table>
+
+<!-- Tabel Absensi -->
+<table class="absen-table">
+    <thead>
+        <tr>
+            <th style="width: 5%;">No</th>
+            <th style="width: 20%;">Hari/Tanggal</th>
+            <th style="width: 60%;">Uraian Kegiatan pada Perusahaan</th>
+            <th style="width: 15%;">Paraf<br>Pembina</th>
+        </tr>
+    </thead>
+    <tbody>
+        ' . $html_tabel_absen . '
+    </tbody>
+</table>
+
+<!-- Keterangan & TTD -->
+<div class="footer-note">
+    Ket : *Coret salah satu, dilengkapi dengan tanda tangan Pembina kerja praktik dan stempel perusahaan.
+</div>
+
+<div class="signature-box">
+    Pembina Kerja Praktik
+    <br><br><br><br><br>
+    (.......................................................)
+</div>
+
+</body>
+</html>
+';
+
+// Render & Output ke PDF
+$options = new Options();
+$options->set('isHtml5ParserEnabled', true);
+$options->set('isRemoteEnabled', true);
+
+$dompdf = new Dompdf($options);
+$dompdf->loadHtml($html);
+$dompdf->setPaper('A4', 'portrait');
+$dompdf->render();
+
+$nama_file = "Absensi_Magang_" . str_replace(' ', '_', $user_data['nama_user']) . ".pdf";
+$dompdf->stream($nama_file, ["Attachment" => 1]);
 exit;
+?>
