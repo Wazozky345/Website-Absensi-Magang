@@ -93,7 +93,7 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                             <?php endfor; ?>
 
                             <?php for ($d = 1; $d <= $total_hari; $d++): 
-                                $tgl_full = sprintf('%s-%s-%02dT10:00', $tahun_aktif, $bulan_aktif, $d);
+                                $tgl_slot = sprintf('%s-%s-%02dT10:00', $tahun_aktif, $bulan_aktif, $d);
                                 
                                 if (isset($bimbingan_db[$d]) && !empty($bimbingan_db[$d])):
                                     foreach ($bimbingan_db[$d] as $bm):
@@ -124,7 +124,7 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <div class="min-h-[64px] bg-white border border-gray-100 rounded-xl p-1 text-[11px] hover:border-blue-300 transition cursor-pointer flex flex-col justify-between"
-                                         onclick="bukaDetailForm('create', 0, 1, '', '', '<?php echo $tgl_full; ?>', '', 'Tatap Muka', 'Terjadwal', '')">
+                                         onclick="bukaDetailForm('create', 0, '', '', '', '<?php echo $tgl_slot; ?>', '', 'Tatap Muka', 'Terjadwal', '')">
                                         <span class="font-bold text-gray-400"><?php echo $d; ?></span>
                                     </div>
                                 <?php endif; ?>
@@ -256,7 +256,7 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
             }
         }
 
-        // FUNGSI SUPER MAGIC: MERENDER TIMELINE BERDASARKAN USER YANG DIPILIH
+        // MERENDER TIMELINE BERDASARKAN USER YANG DIPILIH
         function updateSelectedStudentInfo() {
             const select = document.getElementById('selectUserId');
             if (!select || select.options.length === 0) return;
@@ -272,7 +272,7 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
 
             // Render Ulang Timeline
             const container = document.getElementById('containerTimeline');
-            container.innerHTML = ''; // Bersihkan timeline lama
+            container.innerHTML = ''; 
 
             if (timelineDataDB[userId] && timelineDataDB[userId].length > 0) {
                 timelineDataDB[userId].forEach(item => {
@@ -298,7 +298,7 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
         }
 
         function bukaDetailForm(mode, id, userId, nama, nim, waktu, topik, metode, status, catatan) {
-            document.getElementById('inputBimbinganId').value = id;
+            document.getElementById('inputBimbinganId').value = id || 0;
             document.getElementById('inputAction').value      = 'save';
 
             const btnHapus   = document.getElementById('btnHapusBimbingan');
@@ -315,12 +315,22 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                 btnSubmit.innerText = "Simpan Catatan";
             }
 
-            if (userId) {
-                document.getElementById('selectUserId').value = userId;
-                updateSelectedStudentInfo(); // Panggil ulang render timeline
+            // Atur Mahasiswa Bimbingan
+            const selectMhs = document.getElementById('selectUserId');
+            if (userId && userId > 0) {
+                selectMhs.value = userId;
+            } else if (mode === 'create' && selectMhs.options.length > 0) {
+                if (!selectMhs.value) {
+                    selectMhs.selectedIndex = 0;
+                }
+            }
+            updateSelectedStudentInfo();
+
+            // Set Tanggal/Waktu yang diklik di kalender
+            if (waktu) {
+                document.getElementById('inputWaktuSesi').value = waktu;
             }
 
-            if (waktu) document.getElementById('inputWaktuSesi').value = waktu;
             document.getElementById('inputTopik').value              = topik || '';
             document.getElementById('selectStatusTipe').value        = status || 'Terjadwal';
             document.getElementById('inputCatatan').value            = catatan || '';
@@ -332,7 +342,7 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
 
         function resetFormToCreate() {
             const nowIso = new Date().toISOString().slice(0, 16);
-            bukaDetailForm('create', 0, 1, '', '', nowIso, '', 'Tatap Muka', 'Terjadwal', '');
+            bukaDetailForm('create', 0, '', '', '', nowIso, '', 'Tatap Muka', 'Terjadwal', '');
         }
 
         function konfirmasiHapus() {
@@ -357,7 +367,7 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            updateSelectedStudentInfo(); // Render timeline saat halaman pertama kali dibuka
+            updateSelectedStudentInfo(); 
         });
     </script>
 
