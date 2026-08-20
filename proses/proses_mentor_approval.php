@@ -3,7 +3,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Set zona waktu Indonesia & sembunyikan peringatan Deprecated PHP 8+
 date_default_timezone_set('Asia/Jakarta');
 error_reporting(E_ALL & ~E_DEPRECATED);
 
@@ -23,11 +22,10 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // =========================================================================
-// 1. LOGIKA PENERIMAAN AKSI (POST) - SETUJUI / REVISI TUGAS & SIMPAN PARAF
+// 1. LOGIKA PENERIMAAN AKSI (POST) - SETUJUI / REVISI
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // Validasi CSRF Token
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
         $_SESSION['alert'] = [
             'type' => 'error',
@@ -38,13 +36,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Ambil data dari Form (Fleksibel mendukung 'status_approval' maupun 'keputusan')
-    $id_tugas_detail = intval($_POST['id_tugas'] ?? $_POST['id_tugas_detail'] ?? 0);
-    $keputusan       = trim($_POST['status_approval'] ?? $_POST['keputusan'] ?? '');
+    $id_sumber       = intval($_POST['id_sumber'] ?? 0);
+    $tipe_sumber     = trim($_POST['tipe_sumber'] ?? 'tugas');
+    $keputusan       = trim($_POST['status_approval'] ?? '');
     $catatan_mentor  = trim($_POST['catatan_mentor'] ?? '');
     $paraf_base64    = trim($_POST['paraf_base64'] ?? '');
 
-    if ($id_tugas_detail <= 0 || !in_array($keputusan, ['Disetujui', 'Perlu Revisi'])) {
+    if ($id_sumber <= 0 || !in_array($keputusan, ['Disetujui', 'Perlu Revisi'])) {
         $_SESSION['alert'] = [
             'type' => 'warning',
             'title' => 'Data Tidak Valid',
@@ -54,13 +52,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Update Status Approval, Catatan Penilaian, dan Paraf Digital Mentor
-    $stmt = $conn->prepare("UPDATE tugas_detail SET status_approval = ?, catatan_mentor = ?, paraf_mentor = ?, updated_at = NOW() WHERE id = ?");
+    if ($tipe_sumber === 'logbook') {
+        $stmt = $conn->prepare("UPDATE kehadiran SET status_approval = ?, catatan_mentor = ?, paraf_mentor = ?, waktu_approval = NOW() WHERE id = ?");
+    } else {
+        $stmt = $conn->prepare("UPDATE tugas_detail SET status_approval = ?, catatan_mentor = ?, paraf_mentor = ?, updated_at = NOW() WHERE id = ?");
+    }
+
     if ($stmt) {
-        $stmt->bind_param("sssi", $keputusan, $catatan_mentor, $paraf_base64, $id_tugas_detail);
+        $stmt->bind_param("sssi", $keputusan, $catatan_mentor, $paraf_base64, $id_sumber);
 
         if ($stmt->execute()) {
-            $pesan_status = ($keputusan === 'Disetujui') ? 'Logbook/tugas berhasil disetujui & diparaf.' : 'Instruksi revisi telah dikirim ke mahasiswa.';
+            $label_obj = ($tipe_sumber === 'logbook') ? 'Logbook harian' : 'Tugas';
+            $pesan_status = ($keputusan === 'Disetujui') ? "$label_obj berhasil disetujui & diparaf." : "Instruksi revisi $label_obj telah dikirim ke mahasiswa.";
             $_SESSION['alert'] = [
                 'type' => 'success',
                 'title' => 'Keputusan Disimpan!',
@@ -73,14 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'message' => 'Terjadi kesalahan sistem: ' . $stmt->error
             ];
         }
-
         $stmt->close();
-    } else {
-        $_SESSION['alert'] = [
-            'type' => 'error',
-            'title' => 'Gagal Query Database',
-            'message' => 'Kesalahan SQL: ' . $conn->error
-        ];
     }
 
     header("Location: ../mentor/approval.php");
@@ -88,13 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // =========================================================================
-// 2. LOGIKA PENYEDIAAN DATA VIEW (GET) - TABEL APPROVAL
+// 2. DATA SECTION 1: TUGAS MASUK (DARI TABEL TUGAS_DETAIL)
 // =========================================================================
-$submission_pagi = [];
-$submission_sore = [];
-
-$query_submission = $conn->query("
-    SELECT td.*, t.judul_tugas, u.nama_user, u.nim, u.kelas
+$list_tugas = [];
+$query_tugas = $conn->query("
+    SELECT td.*, t.judul_tugas, u.nama_user, u.nim
     FROM tugas_detail td
     JOIN tugas t ON td.tugas_id = t.id
     JOIN users u ON td.user_id = u.id
@@ -102,19 +96,27 @@ $query_submission = $conn->query("
     ORDER BY td.waktu_kirim DESC
 ");
 
-if ($query_submission && $query_submission->num_rows > 0) {
-    while ($row = $query_submission->fetch_assoc()) {
-        
-        // Pengecekan NULL-safe pada fungsi strtotime() untuk PHP 8.1+
-        $jam_kirim = !empty($row['waktu_kirim']) ? date('H:i:s', strtotime($row['waktu_kirim'])) : '00:00:00';
-        $sesi_batch = $row['sesi_batch'] ?? '';
+if ($query_tugas && $query_tugas->num_rows > 0) {
+    while ($row = $query_tugas->fetch_assoc()) {
+        $list_tugas[] = $row;
+    }
+}
 
-        // Pengelompokan Batch berdasarkan Sesi atau Jam Kirim
-        if ($sesi_batch === 'Pagi' || ($jam_kirim !== '00:00:00' && $jam_kirim <= '12:00:00')) {
-            $submission_pagi[] = $row;
-        } else {
-            $submission_sore[] = $row;
-        }
+// =========================================================================
+// 3. DATA SECTION 2: LOGBOOK HARIAN (DARI TABEL KEHADIRAN)
+// =========================================================================
+$list_logbook = [];
+$query_logbook = $conn->query("
+    SELECT k.*, u.nama_user, u.nim
+    FROM kehadiran k
+    JOIN users u ON k.user_id = u.id
+    WHERE k.catatan IS NOT NULL AND k.catatan != ''
+    ORDER BY k.tanggal DESC, k.waktu_masuk DESC
+");
+
+if ($query_logbook && $query_logbook->num_rows > 0) {
+    while ($row = $query_logbook->fetch_assoc()) {
+        $list_logbook[] = $row;
     }
 }
 ?>
