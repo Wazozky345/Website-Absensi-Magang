@@ -129,6 +129,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_ins->bind_param("isss", $user_id, $tanggal_hari_ini, $waktu_sekarang, $status);
             $stmt_ins->execute();
             $stmt_ins->close();
+
+            // Notifikasi Absen Masuk
+            $_SESSION['alert'] = [
+                'type' => 'success',
+                'title' => 'Absen Berhasil!',
+                'message' => 'Laporan kehadiran Anda hari ini telah dicatat.'
+            ];
         } 
         $stmt_cek->close();
 
@@ -142,6 +149,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt_pulang->execute();
         $stmt_pulang->close();
 
+        // Notifikasi Absen Pulang
+        $_SESSION['alert'] = [
+            'type' => 'success',
+            'title' => 'Checkout Berhasil!',
+            'message' => 'Jam pulang magang Anda telah tercatat.'
+        ];
+
         header("Location: " . $_SERVER['REQUEST_URI']);
         exit;
     }
@@ -154,6 +168,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt_log->bind_param("sii", $catatan, $id_kehadiran, $user_id);
         $stmt_log->execute();
         $stmt_log->close();
+
+        // Notifikasi Simpan Logbook
+        $_SESSION['alert'] = [
+            'type' => 'success',
+            'title' => 'Tersimpan!',
+            'message' => 'Catatan logbook berhasil diperbarui.'
+        ];
 
         header("Location: " . $_SERVER['REQUEST_URI']);
         exit;
