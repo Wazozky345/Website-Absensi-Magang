@@ -76,12 +76,37 @@ if($query_absen->num_rows > 0) {
         $hari_indo = getHariIndo($row['tanggal']);
         $catatan = !empty($row['catatan']) ? $row['catatan'] : '-';
         
+        // =========================================================================
+        // LOGIKA PEMBACAAN DAN RENDERING PARAF MENTOR
+        // =========================================================================
+        $paraf_data = $row['paraf_mentor'] ?? $row['paraf'] ?? $row['ttd_mentor'] ?? '';
+        $paraf_img = '';
+
+        if (!empty($paraf_data)) {
+            // Jika paraf berupa String Base64 (data:image/...)
+            if (strpos($paraf_data, 'data:image') === 0) {
+                $paraf_img = '<img src="' . $paraf_data . '" style="max-height: 35px; max-width: 70px; display: block; margin: 0 auto;">';
+            } else {
+                // Jika paraf berupa path file lokal
+                $path_paraf_abs = realpath(__DIR__ . '/../' . ltrim($paraf_data, '/'));
+                if ($path_paraf_abs && file_exists($path_paraf_abs)) {
+                    $type_p = pathinfo($path_paraf_abs, PATHINFO_EXTENSION);
+                    $data_p = file_get_contents($path_paraf_abs);
+                    $base64_p = 'data:image/' . $type_p . ';base64,' . base64_encode($data_p);
+                    $paraf_img = '<img src="' . $base64_p . '" style="max-height: 35px; max-width: 70px; display: block; margin: 0 auto;">';
+                } else {
+                    // Fallback pemanggilan URL/Path langsung
+                    $paraf_img = '<img src="' . $paraf_data . '" style="max-height: 35px; max-width: 70px; display: block; margin: 0 auto;">';
+                }
+            }
+        }
+        
         $html_tabel_absen .= '
         <tr>
             <td style="text-align:center;">' . $no++ . '</td>
             <td style="text-align:center;">' . $hari_indo . ',<br>' . $tgl_format . '</td>
             <td style="text-align:left; padding-left:5px;">' . htmlspecialchars($catatan) . '</td>
-            <td></td>
+            <td style="text-align:center; vertical-align:middle;">' . $paraf_img . '</td>
         </tr>';
     }
 } else {
