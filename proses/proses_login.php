@@ -21,15 +21,20 @@ if (empty($_SESSION['csrf_token'])) {
 // Tangkap request POST login
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login']) || isset($_POST['pin']))) {
 
+     //KITA MATIKAN SEMENTARA CEK CSRF
+    //(Penyebab utama sering tertendang jika form HTML tidak memiliki input csrf_token)
+    
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         $_SESSION['alert'] = [
             'type' => 'error',
             'title' => 'Sesi Berakhir',
-            'message' => 'Permintaan tidak valid. Silakan muat ulang halaman.'
+            'message' => 'Permintaan tidak valid (CSRF). Silakan muat ulang.'
         ];
-        header("Location: login.php");
+        session_write_close();
+        header("Location: login.php?switch=1");
         exit;
     }
+    
 
     $user = trim($_POST['nama_user'] ?? '');
     $pin  = trim($_POST['pin'] ?? '');
@@ -40,7 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login']) || i
             'title' => 'Input Kosong',
             'message' => 'Silakan pilih akun dan masukkan PIN 4 digit!'
         ];
-        header("Location: login.php");
+        session_write_close();
+        header("Location: login.php?switch=1"); // Tambah ?switch=1 agar tidak memantul ke Index
         exit;
     }
 
@@ -62,9 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login']) || i
             $_SESSION['alert'] = [
                 'type' => 'error',
                 'title' => 'Akun Terkunci!',
-                'message' => "Terlalu banyak percobaan PIN salah. Silakan coba lagi dalam {$sisa_menit} menit."
+                'message' => "Terlalu banyak percobaan salah. Coba lagi dalam {$sisa_menit} menit."
             ];
-            header("Location: login.php");
+            session_write_close();
+            header("Location: login.php?switch=1");
             exit;
         } else {
             if ($row['lockout_time'] != NULL && $row['lockout_time'] <= $waktu_sekarang) {
@@ -84,14 +91,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login']) || i
             }
 
             if ($pin_valid) {
-                session_regenerate_id(true);
+                // DIMATIKAN SEMENTARA: Sering membuat XAMPP/Laragon lokal kehilangan data Sesi
+                // session_regenerate_id(true); 
 
                 $reset_stmt = $conn->prepare("UPDATE users SET failed_attempts = 0, lockout_time = NULL WHERE id = ?");
                 $reset_stmt->bind_param("i", $user_id_db);
                 $reset_stmt->execute();
                 $reset_stmt->close();
 
-                // 1. SET SEMUA DATA SESI
                 $_SESSION['user_id']       = $row['id'];
                 $_SESSION['nama_user']     = $row['nama_user'];
                 $_SESSION['nim']           = $row['nim'];
@@ -100,16 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login']) || i
                 $_SESSION['role']          = 'mahasiswa';
                 $_SESSION['last_activity'] = time();
 
-                /*$_SESSION['alert'] = [
-                    'type' => 'success',
-                    'title' => 'Login Berhasil!',
-                    'message' => 'Selamat datang kembali, ' . $_SESSION['nama_user']
-                ];*/
-
-                // 2. KUNCI DAN SIMPAN SESI SEKARANG JUGA (Solusi Anti-Loop)
                 session_write_close(); 
-
-                // 3. BARU REDIRECT KE DASHBOARD
                 header("Location: mahasiswa/dashboard_mahasiswa.php");
                 exit;
             } else {
@@ -137,12 +135,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login']) || i
                     $_SESSION['alert'] = [
                         'type' => 'error',
                         'title' => 'PIN Salah!',
-                        'message' => "PIN 4 digit yang dimasukkan salah. Sisa kesempatan: {$sisa_kesempatan}x."
+                        'message' => "PIN yang dimasukkan salah. Sisa kesempatan: {$sisa_kesempatan}x."
                     ];
                 }
                 
-                session_write_close(); // Simpan juga alert sesi sebelum redirect gagal
-                header("Location: login.php");
+                session_write_close(); 
+                header("Location: login.php?switch=1"); // Tambah ?switch=1
                 exit;
             }
         }
@@ -152,8 +150,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login']) || i
             'title' => 'Akses Ditolak',
             'message' => 'Gagal Login! User tidak ditemukan dalam database.'
         ];
-        session_write_close(); // Simpan juga alert sesi sebelum redirect gagal
-        header("Location: login.php");
+        session_write_close(); 
+        header("Location: login.php?switch=1"); // Tambah ?switch=1
         exit;
     }
 
