@@ -1,6 +1,6 @@
 -- ========================================================
 -- DATABASE: absensi_db
--- UTB Tracker - Sistem Absensi & Evaluasi Magang
+-- UTB Tracker - Sistem Absensi & Evaluasi Magang (Testing Phase)
 -- ========================================================
 
 CREATE DATABASE IF NOT EXISTS `absensi_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
@@ -38,7 +38,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `email_unik` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Data Awal Mahasiswa (PIN Default: 1234, sudah di-hash Bcrypt)
+-- Data Awal Mahasiswa (Dipertahankan untuk Testing)
 INSERT INTO `users` (`id`, `nama_user`, `nim`, `kelas`, `konsentrasi`, `email`, `pin`, `failed_attempts`, `lockout_time`) VALUES
 (1, 'Alvin Nurfaiz', '232101111', 'TiF 23 CNS J', 'Computer and Network Security', 'alvin.nurfaiz@student.utb.ac.id', '$2y$10$771J.TR8EnLcoC2arj3gM.POiqGua6aT8J/c2naogZ8xB8ptOeQkG', 0, NULL),
 (2, 'M. Yusman Bayuga', '232101145', 'TiF 23 CiD G', 'Creative Interactive Design', 'yusman.bayuga@student.utb.ac.id', '$2y$10$771J.TR8EnLcoC2arj3gM.POiqGua6aT8J/c2naogZ8xB8ptOeQkG', 0, NULL);
@@ -55,21 +55,15 @@ CREATE TABLE `kehadiran` (
   `waktu_keluar` time DEFAULT NULL, 
   `status` enum('Hadir','Sakit','Izin','Lembur') NOT NULL, 
   `catatan` text DEFAULT NULL, 
-  `status_approval` enum('Pending','Disetujui','Perlu Revisi') DEFAULT 'Pending', -- BARU: Status persetujuan logbook presensi
-  `catatan_mentor` text DEFAULT NULL, -- BARU: Catatan evaluasi dari mentor
-  `paraf_mentor` longtext DEFAULT NULL COMMENT 'Menyimpan format base64 gambar paraf', -- BARU: Gambar paraf digital Base64
-  `waktu_approval` datetime DEFAULT NULL, -- BARU: Waktu penandatanganan/approval
+  `status_approval` enum('Pending','Disetujui','Perlu Revisi') DEFAULT 'Pending',
+  `catatan_mentor` text DEFAULT NULL, 
+  `paraf_mentor` longtext DEFAULT NULL COMMENT 'Menyimpan format base64 gambar paraf', 
+  `waktu_approval` datetime DEFAULT NULL, 
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `fk_user_kehadiran` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Data Awal Presensi Harian
-INSERT INTO `kehadiran` (`id`, `user_id`, `tanggal`, `waktu_masuk`, `waktu_keluar`, `status`, `catatan`, `status_approval`, `catatan_mentor`, `paraf_mentor`, `waktu_approval`) VALUES
-(1, 1, '2026-08-01', '07:45:00', '16:05:00', 'Hadir', 'Presensi tepat waktu di kantor cabang', 'Pending', NULL, NULL, NULL), -- BARU: Penyesuaian data awal kolom approval & paraf
-(2, 2, '2026-08-01', '07:50:00', '16:10:00', 'Hadir', 'Pengerjaan prototype UI modul logbook', 'Pending', NULL, NULL, NULL), -- BARU: Penyesuaian data awal kolom approval & paraf
-(3, 1, '2026-08-03', '07:41:00', NULL, 'Hadir', 'Presensi masuk hari ini', 'Pending', NULL, NULL, NULL), -- BARU: Penyesuaian data awal kolom approval & paraf
-(4, 2, '2026-08-03', '08:22:00', NULL, 'Hadir', 'Presensi sesi pagi', 'Pending', NULL, NULL, NULL); -- BARU: Penyesuaian data awal kolom approval & paraf
+-- Data dikosongkan untuk testing
 
 
 -- --------------------------------------------------------
@@ -88,12 +82,7 @@ CREATE TABLE `agenda` (
   KEY `user_id` (`user_id`),
   CONSTRAINT `fk_user_agenda` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Data Awal Agenda Kalender
-INSERT INTO `agenda` (`id`, `user_id`, `judul`, `kategori`, `tanggal`, `waktu`, `pengingat_offset`, `deskripsi`) VALUES
-(1, 1, 'Review Wireframe & ERD Sistem', 'Industri', '2026-07-03', '13:00:00', 12, 'Diskusi langsung dengan mentor mengenai struktur tabel'),
-(2, 2, 'Penyusunan Modul Dashboard UI', 'Industri', '2026-07-12', '09:00:00', 12, 'Pembuatan komponen visual dan sinkronisasi Tailwind CSS'),
-(3, 1, 'Bimbingan Laporan Magang Bab 2', 'Kampus', '2026-07-20', '10:30:00', 1, 'Konsultasi bersama pembimbing akademik');
+-- Data dikosongkan untuk testing
 
 
 -- --------------------------------------------------------
@@ -111,15 +100,7 @@ CREATE TABLE `milestones` (
   KEY `user_id` (`user_id`),
   CONSTRAINT `fk_user_milestone` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Data Awal Target Milestone Bulanan
-INSERT INTO `milestones` (`id`, `user_id`, `bulan_key`, `judul`, `status`, `operasional`, `it`) VALUES
-(1, 1, '07', 'Milestone 1 (Juli)', 'Selesai', 'Penginputan & rekapitulasi data harian finansial ke Excel.', 'Analisis kelemahan sistem absen fisik pemagang & perancangan basis data Tracker.'),
-(2, 1, '08', 'Milestone 2 (Agustus)', 'Berjalan', 'Monitoring akuisisi produk digital dan validasi leads.', 'Desain UI/UX dashboard desktop serta sinkronisasi penataan kolom logbook.'),
-(3, 1, '09', 'Milestone 3 (September)', 'Pending', 'Evaluasi berkala alokasi Dana Talangan dan volume transaksi.', 'Implementasi koding CRUD agenda mandiri kalender dan pengujian file rekapitulasi.'),
-(4, 1, '10', 'Milestone 4 (Oktober)', 'Pending', 'Penyusunan laporan akhir magang dan dokumentasi kode.', 'Final deployment sistem absensi magang ke server produksi.'),
-(5, 2, '07', 'Milestone 1 (Juli)', 'Selesai', 'Observasi alur kerja operasional kantor dan inventarisasi data.', 'Perancangan wireframe UI/UX interaktif berbasis Figma.'),
-(6, 2, '08', 'Milestone 2 (Agustus)', 'Berjalan', 'Pengujian fungsionalitas antarmuka sistem absensi.', 'Integrasi frontend Tailwind CSS dengan backend PHP MySQL.');
+-- Data dikosongkan untuk testing
 
 
 -- --------------------------------------------------------
@@ -140,7 +121,7 @@ CREATE TABLE `mentors` (
   UNIQUE KEY `email_unik` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Data Awal Mentor (PIN Default: 1234, belum di-hash untuk testing skenario Plaintext-ke-Bcrypt)
+-- Data Awal Mentor (Dipertahankan untuk Testing Approval/Tugas)
 INSERT INTO `mentors` (`id`, `username`, `nama_mentor`, `email`, `pin`, `jabatan`, `failed_attempts`, `lockout_time`, `created_at`) VALUES
 (1, 'mentor.alvin', 'Dr. Alvin Nurfaiz, M.T.', 'mentor.alvin@utb.ac.id', '1234', 'Pembimbing Lapangan BRI', 0, NULL, '2026-06-01 08:00:00'),
 (2, 'mentor.bayuga', 'M. Yusman Bayuga, S.T., M.Kom.', 'mentor.bayuga@utb.ac.id', '1234', 'Pembimbing Akademik UTB', 0, NULL, '2026-06-01 08:00:00');
@@ -165,11 +146,7 @@ CREATE TABLE `bimbingan` (
   CONSTRAINT `fk_bimbingan_mentor` FOREIGN KEY (`mentor_id`) REFERENCES `mentors` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_bimbingan_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Data Awal Sesi Bimbingan
-INSERT INTO `bimbingan` (`id`, `mentor_id`, `user_id`, `tanggal_waktu`, `topik`, `metode`, `catatan_revisi`, `status`, `created_at`) VALUES
-(1, 1, 1, '2026-07-03 13:00:00', 'Review BAB II - Kajian Pustaka', 'Tatap Muka', 'Perbaiki rumusan masalah pada Bab I, sesuaikan dengan batasan penelitian template magang.', 'Terjadwal', '2026-07-01 10:00:00'),
-(2, 1, 2, '2026-07-10 10:00:00', 'Revisi Laporan BAB I', 'Online', 'Lengkapi identitas dosen pembimbing (NIP/NIDN) pada halaman sampul proposal.', 'Revisi', '2026-07-05 14:00:00');
+-- Data dikosongkan untuk testing
 
 
 -- --------------------------------------------------------
@@ -190,11 +167,7 @@ CREATE TABLE `tugas` (
   CONSTRAINT `fk_tugas_mentor` FOREIGN KEY (`mentor_id`) REFERENCES `mentors` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_tugas_target_user` FOREIGN KEY (`target_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Data Awal Penugasan Mentor
-INSERT INTO `tugas` (`id`, `mentor_id`, `target_user_id`, `judul_tugas`, `deskripsi`, `file_lampiran`, `tenggat`, `created_at`) VALUES
-(1, 1, NULL, 'Analisis Kebutuhan Sistem Minggu 7', 'Silakan unggah dokumen requirement traceability matrix dalam format PDF.', 'lampiran_instruksi_w7.pdf', '2026-08-15 23:59:00', '2026-08-01 09:00:00'),
-(2, 1, 1, 'Revisi Laporan BAB II', 'Perbaiki daftar pustaka dan gunakan format IEEE standar.', NULL, '2026-08-20 17:00:00', '2026-08-02 10:30:00');
+-- Data dikosongkan untuk testing
 
 
 -- --------------------------------------------------------
@@ -208,7 +181,7 @@ CREATE TABLE `tugas_detail` (
   `waktu_kirim` datetime DEFAULT NULL,
   `status_approval` enum('Menunggu Review','Disetujui','Perlu Revisi','Belum Ada Berkas') NOT NULL DEFAULT 'Menunggu Review',
   `catatan_mentor` text DEFAULT NULL,
-  `paraf_mentor` longtext DEFAULT NULL COMMENT 'Menyimpan format base64 gambar paraf', -- BARU: Penambahan kolom simpan paraf digital Base64
+  `paraf_mentor` longtext DEFAULT NULL COMMENT 'Menyimpan format base64 gambar paraf', 
   `sesi_batch` enum('Pagi','Sore') DEFAULT 'Pagi',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -217,8 +190,4 @@ CREATE TABLE `tugas_detail` (
   CONSTRAINT `fk_tugas_detail_tugas` FOREIGN KEY (`tugas_id`) REFERENCES `tugas` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_tugas_detail_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Data Awal Submission & Approval Tugas
-INSERT INTO `tugas_detail` (`id`, `tugas_id`, `user_id`, `file_balasan`, `waktu_kirim`, `status_approval`, `catatan_mentor`, `paraf_mentor`, `sesi_batch`, `updated_at`) VALUES
-(1, 1, 1, 'tugas_rangga_w7.pdf', '2026-08-03 08:14:00', 'Menunggu Review', NULL, NULL, 'Pagi', '2026-08-03 08:14:00'), -- BARU: Penyesuaian data awal kolom paraf_mentor
-(2, 1, 2, 'bab2_revisi_bayuga.docx', '2026-08-03 15:22:00', 'Menunggu Review', NULL, NULL, 'Sore', '2026-08-03 15:22:00'); -- BARU: Penyesuaian data awal kolom paraf_mentor
+-- Data dikosongkan untuk testing
