@@ -91,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login']) || i
                 $reset_stmt->execute();
                 $reset_stmt->close();
 
+                // 1. SET SEMUA DATA SESI
                 $_SESSION['user_id']       = $row['id'];
                 $_SESSION['nama_user']     = $row['nama_user'];
                 $_SESSION['nim']           = $row['nim'];
@@ -105,6 +106,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login']) || i
                     'message' => 'Selamat datang kembali, ' . $_SESSION['nama_user']
                 ];*/
 
+                // 2. KUNCI DAN SIMPAN SESI SEKARANG JUGA (Solusi Anti-Loop)
+                session_write_close(); 
+
+                // 3. BARU REDIRECT KE DASHBOARD
                 header("Location: mahasiswa/dashboard_mahasiswa.php");
                 exit;
             } else {
@@ -135,7 +140,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login']) || i
                         'message' => "PIN 4 digit yang dimasukkan salah. Sisa kesempatan: {$sisa_kesempatan}x."
                     ];
                 }
-
+                
+                session_write_close(); // Simpan juga alert sesi sebelum redirect gagal
                 header("Location: login.php");
                 exit;
             }
@@ -146,9 +152,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login']) || i
             'title' => 'Akses Ditolak',
             'message' => 'Gagal Login! User tidak ditemukan dalam database.'
         ];
+        session_write_close(); // Simpan juga alert sesi sebelum redirect gagal
         header("Location: login.php");
         exit;
     }
 
     $stmt->close();
 }
+?>
