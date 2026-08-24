@@ -7,7 +7,7 @@ require_once __DIR__ . '/../config/koneksi.php';
 
 // Memproses Form Login saat metode POST dikirimkan
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login_mahasiswa']) || isset($_POST['nim']))) {
-    
+
     // 1. Validasi CSRF Token
     $csrf_token = $_POST['csrf_token'] ?? '';
     if (empty($csrf_token) || !hash_equals($_SESSION['csrf_token'] ?? '', $csrf_token)) {
@@ -114,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login_mahasis
         } else {
             // PIN Salah: Tambah Penghitung Kegagalan
             $new_attempts = $user['failed_attempts'] + 1;
-            
+
             if ($new_attempts >= 5) {
                 // Kunci akun selama 15 menit jika mencapai 5 kali kegagalan
                 $lock_stmt = $conn->prepare("UPDATE users SET failed_attempts = ?, lockout_time = DATE_ADD(NOW(), INTERVAL 15 MINUTE) WHERE id = ?");
@@ -149,9 +149,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login_mahasis
             'text'  => 'NIM tidak terdaftar. Silakan mendaftar terlebih dahulu.'
         ];
     }
+    
+    if (isset($stmt)) {
+        $stmt->close();
+    }
 
-    $stmt->close();
+    session_write_close(); // Pastikan sesi ditulis sebelum redirect
     header("Location: ../login.php");
     exit;
 }
-?>
