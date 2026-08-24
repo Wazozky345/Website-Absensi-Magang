@@ -4,7 +4,7 @@
 // ==========================================================
 $batas_request = 20;        // Maksimal request (Bisa diganti ke 3 untuk testing)
 $jeda_waktu = 10;           // Dalam rentang 10 detik
-$waktu_hukuman = 300;       // HUKUMAN: Diblokir 300 detik (5 menit)
+$waktu_hukuman = 86400;     // HUKUMAN: Diblokir 86400 detik (24 jam)
 
 // 1. TANGKAP IP ADDRESS PENGUNJUNG (MENEMBUS PROXY/CLOUDFLARE HOSTING)
 if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
@@ -29,16 +29,27 @@ if (!is_dir($dir_log)) {
     mkdir($dir_log, 0777, true);
 }
 
-// --- FITUR BARU: TUKANG SAPU (GARBAGE COLLECTOR) ---
-// Membersihkan file log IP yang sudah berumur lebih dari 1 hari (86400 detik).
-// Berjalan secara acak (probabilitas 5%) agar tidak membebani server setiap kali di-load.
+// --- FITUR BARU: SMART GARBAGE COLLECTOR ---
+// Membersihkan file log IP secara cerdas agar tidak nyampah di server.
+// Berjalan secara acak (probabilitas 5%) agar tidak membebani server.
 if (rand(1, 100) <= 5) {
     $files = glob($dir_log . '*.json');
     $waktu_sekarang = time();
     if ($files) {
         foreach ($files as $file) {
-            if (is_file($file) && ($waktu_sekarang - filemtime($file) > 86400)) {
-                unlink($file); 
+            if (is_file($file)) {
+                $content = json_decode(file_get_contents($file), true);
+                
+                // 1. User Normal: Hapus jika file sudah tidak diupdate lebih dari 5 menit (300 detik)
+                if (isset($content['banned_until']) && $content['banned_until'] == 0) {
+                    if (($waktu_sekarang - filemtime($file)) > 300) {
+                        unlink($file);
+                    }
+                }
+                // 2. User Diblokir: Hapus hanya jika masa hukuman 24 jam sudah selesai
+                elseif (isset($content['banned_until']) && $waktu_sekarang > $content['banned_until']) {
+                    unlink($file);
+                }
             }
         }
     }
@@ -63,12 +74,19 @@ $waktu_sekarang = time();
 // 4. EKSEKUSI HUKUMAN (JIKA MASIH DALAM MASA BLOKIR)
 if ($log_data['banned_until'] > $waktu_sekarang) {
     $sisa_waktu = $log_data['banned_until'] - $waktu_sekarang;
+    
+    // Format sisa waktu ke Jam:Menit:Detik
+    $sisa_jam = floor($sisa_waktu / 3600);
+    $sisa_menit = floor(($sisa_waktu % 3600) / 60);
+    $sisa_detik = $sisa_waktu % 60;
+    $format_waktu = "{$sisa_jam} jam {$sisa_menit} menit {$sisa_detik} detik";
+
     header('HTTP/1.1 429 Too Many Requests');
     die("<h1 style='font-family: sans-serif; text-align: center; margin-top: 20%; color: #ef4444;'>
             ⚠️ Akses Diblokir! (Error 429) <br>
             <span style='font-size: 16px; color: #6b7280;'>
                 IP Anda (<b>{$ip_address}</b>) terdeteksi melakukan spam. <br>
-                Silakan tunggu <b>{$sisa_waktu} detik</b> lagi untuk mengakses web ini.
+                Silakan tunggu <b>{$format_waktu}</b> lagi untuk mengakses web ini.
             </span>
          </h1>");
 }
@@ -79,7 +97,7 @@ $waktu_berlalu = $waktu_sekarang - $log_data['waktu_awal'];
 if ($waktu_berlalu < $jeda_waktu) {
     $log_data['request_count']++;
     
-    // JIKA NGE-SPAM MELEBIHI BATAS -> PENJARA 5 MENIT!
+    // JIKA NGE-SPAM MELEBIHI BATAS -> PENJARA 24 JAM!
     if ($log_data['request_count'] > $batas_request) {
         $log_data['banned_until'] = $waktu_sekarang + $waktu_hukuman;
         
@@ -89,7 +107,7 @@ if ($waktu_berlalu < $jeda_waktu) {
         header('HTTP/1.1 429 Too Many Requests');
         die("<h1 style='font-family: sans-serif; text-align: center; margin-top: 20%; color: #ef4444;'>
                 ⚠️ Terdeteksi Serangan! (Error 429) <br>
-                <span style='font-size: 16px; color: #6b7280;'>IP Anda diblokir selama 5 menit tanpa ampun.</span>
+                <span style='font-size: 16px; color: #6b7280;'>IP Anda diblokir selama 24 jam tanpa ampun.</span>
              </h1>");
     }
 } else {
