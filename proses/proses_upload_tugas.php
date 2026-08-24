@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 4. DIREKTORI PENYIMPANAN AMAN
     $target_dir = __DIR__ . '/../uploads/tugas_mahasiswa/';
     if (!file_exists($target_dir)) {
-        mkdir($target_dir, 0777, true);
+        mkdir($target_dir, 0755, true);
     }
 
     // Penamaan File Unik
