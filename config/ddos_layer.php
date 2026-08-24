@@ -26,7 +26,7 @@ $file_path = $dir_log . $nama_file;
 
 // 2. BUAT FOLDER OTOMATIS JIKA BELUM ADA
 if (!is_dir($dir_log)) {
-    mkdir($dir_log, 0777, true);
+    mkdir($dir_log, 0755, true);
 }
 
 // --- FITUR BARU: SMART GARBAGE COLLECTOR ---
