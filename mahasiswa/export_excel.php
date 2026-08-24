@@ -138,20 +138,19 @@ if ($total_data < $min_rows) {
 }
 
 // =========================================================================
-// LOGIKA GAMBAR BASE 64 LOGO UTB
+// LOGIKA GAMBAR BASE 64 LOGO UTB (AMBIL FILE DENGAN AMAN)
 // =========================================================================
-$path_logo = realpath(__DIR__ . '/../assets/picture/logo_utb.png');
-if (!$path_logo) {
-    $path_logo = __DIR__ . '/../assets/picture/logo_utb.png';
-}
+$file_logo = __DIR__ . '/../assets/picture/logo_utb.png';
+$logo_img = '<div style="font-weight:bold; font-size:11pt; text-align:center;">UTB</div>';
 
-if (file_exists($path_logo)) {
-    $type = pathinfo($path_logo, PATHINFO_EXTENSION);
-    $data_img = file_get_contents($path_logo);
-    $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data_img);
-    $logo_img = '<img src="' . $base64 . '" style="width: 70px; height: auto;">';
-} else {
-    $logo_img = '<div style="font-weight:bold; font-size:11pt;">UTB</div>';
+if (file_exists($file_logo) && filesize($file_logo) > 0) {
+    $ext = strtolower(pathinfo($file_logo, PATHINFO_EXTENSION));
+    $mime = ($ext === 'jpg' || $ext === 'jpeg') ? 'image/jpeg' : 'image/png';
+    $data_img = file_get_contents($file_logo);
+    if ($data_img !== false) {
+        $base64 = 'data:' . $mime . ';base64,' . base64_encode($data_img);
+        $logo_img = '<img src="' . $base64 . '" style="width: 70px; height: auto;">';
+    }
 }
 
 // =========================================================================
