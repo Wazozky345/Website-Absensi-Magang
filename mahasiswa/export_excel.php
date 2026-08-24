@@ -14,7 +14,7 @@ $user_id = $_SESSION['user_id'] ?? 0;
 
 // 1. Ambil data informasi mahasiswa
 $query_user = $conn->query("SELECT * FROM users WHERE id = '$user_id'");
-$user_data = $query_user->fetch_assoc();
+$user_data = ($query_user && $query_user->num_rows > 0) ? $query_user->fetch_assoc() : [];
 
 // =========================================================================
 // LOGIKA DETEKSI TANGGAL MERAH
@@ -54,8 +54,19 @@ if (file_exists($file_cache_libur)) {
     file_put_contents($file_cache_libur, json_encode($libur_nasional));
 }
 
-// Ambil riwayat absen lengkap
+// =========================================================================
+// MENGAMBIL DATA DATABASE DAN DISIMPAM BERDASARKAN TANGGAL
+// =========================================================================
 $query_absen = $conn->query("SELECT * FROM kehadiran WHERE user_id = '$user_id' ORDER BY tanggal ASC");
+$data_absen = [];
+
+if ($query_absen && $query_absen->num_rows > 0) {
+    while ($row = $query_absen->fetch_assoc()) {
+        // Tentukan format string Y-m-d sebagai key array
+        $key_tgl = date('Y-m-d', strtotime($row['tanggal']));
+        $data_absen[$key_tgl] = $row;
+    }
+}
 
 // Fungsi penerjemah hari
 function getHariIndo(string $tanggal) {
@@ -64,30 +75,40 @@ function getHariIndo(string $tanggal) {
         'Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa',
         'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'
     ];
-    return $daftar_hari[$hari_inggris];
+    return $daftar_hari[$hari_inggris] ?? $hari_inggris;
 }
 
-// Looping isi tabel berdasarkan history absen database 
+// =========================================================================
+// GENERATE TANGGAL NYATA (8 JULI SAMPAI HARI INI / 21 AGUSTUS)
+// =========================================================================
+$tgl_mulai   = new DateTime('2026-07-08'); // Tanggal awal magang
+$tgl_selesai = new DateTime('2026-08-21'); // Sampai tanggal 21 Agustus (atau gunakan new DateTime() untuk otomatis hari ini)
+$tgl_selesai->modify('+1 day'); // Menambah 1 hari agar tanggal akhir terhitung dalam perulangan
+
+$interval  = new DateInterval('P1D');
+$date_range = new DatePeriod($tgl_mulai, $interval, $tgl_selesai);
+
 $html_tabel_absen = '';
 $no = 1;
-if($query_absen->num_rows > 0) {
-    while($row = $query_absen->fetch_assoc()) {
-        $tgl_format = date('d-m-Y', strtotime($row['tanggal']));
-        $hari_indo = getHariIndo($row['tanggal']);
-        $catatan = !empty($row['catatan']) ? $row['catatan'] : '-';
+
+foreach ($date_range as $date) {
+    $tgl_key    = $date->format('Y-m-d');
+    $tgl_format = $date->format('d-m-Y');
+    $hari_indo  = getHariIndo($tgl_key);
+    
+    // Pengecekan apakah tanggal tersebut ada di database
+    if (isset($data_absen[$tgl_key])) {
+        $row_db  = $data_absen[$tgl_key];
+        $catatan = !empty($row_db['catatan']) ? $row_db['catatan'] : '-';
         
-        // =========================================================================
-        // LOGIKA PEMBACAAN DAN RENDERING PARAF MENTOR
-        // =========================================================================
-        $paraf_data = $row['paraf_mentor'] ?? $row['paraf'] ?? $row['ttd_mentor'] ?? '';
-        $paraf_img = '';
+        // Pembacaan Paraf Mentor
+        $paraf_data = $row_db['paraf_mentor'] ?? $row_db['paraf'] ?? $row_db['ttd_mentor'] ?? '';
+        $paraf_img  = '';
 
         if (!empty($paraf_data)) {
-            // Jika paraf berupa String Base64 (data:image/...)
             if (strpos($paraf_data, 'data:image') === 0) {
                 $paraf_img = '<img src="' . $paraf_data . '" style="max-height: 35px; max-width: 70px; display: block; margin: 0 auto;">';
             } else {
-                // Jika paraf berupa path file lokal
                 $path_paraf_abs = realpath(__DIR__ . '/../' . ltrim($paraf_data, '/'));
                 if ($path_paraf_abs && file_exists($path_paraf_abs)) {
                     $type_p = pathinfo($path_paraf_abs, PATHINFO_EXTENSION);
@@ -95,51 +116,40 @@ if($query_absen->num_rows > 0) {
                     $base64_p = 'data:image/' . $type_p . ';base64,' . base64_encode($data_p);
                     $paraf_img = '<img src="' . $base64_p . '" style="max-height: 35px; max-width: 70px; display: block; margin: 0 auto;">';
                 } else {
-                    // Fallback pemanggilan URL/Path langsung
                     $paraf_img = '<img src="' . $paraf_data . '" style="max-height: 35px; max-width: 70px; display: block; margin: 0 auto;">';
                 }
             }
         }
-        
-        $html_tabel_absen .= '
-        <tr>
-            <td style="text-align:center;">' . $no++ . '</td>
-            <td style="text-align:center;">' . $hari_indo . ',<br>' . $tgl_format . '</td>
-            <td style="text-align:left; padding-left:5px;">' . htmlspecialchars($catatan) . '</td>
-            <td style="text-align:center; vertical-align:middle;">' . $paraf_img . '</td>
-        </tr>';
+    } else {
+        // Jika pada tanggal tersebut mahasiswa tidak/belum mengisi presensi
+        $catatan   = '-';
+        $paraf_img = '';
     }
-} else {
-    for ($i = 0; $i < 8; $i++) {
-        $html_tabel_absen .= '
-        <tr>
-            <td style="height: 25px;"></td>
-            <td></td>
-            <td></td>
-            <td></td>
-        </tr>';
-    }
+
+    $html_tabel_absen .= '
+    <tr>
+        <td style="text-align:center;">' . $no++ . '</td>
+        <td style="text-align:center;">' . $hari_indo . ',<br>' . $tgl_format . '</td>
+        <td style="text-align:left; padding-left:5px;">' . htmlspecialchars($catatan) . '</td>
+        <td style="text-align:center; vertical-align:middle;">' . $paraf_img . '</td>
+    </tr>';
 }
 
 // =========================================================================
-// LOGIKA GAMBAR BASE 64 (MENGGUNAKAN __DIR__ DINAMIS)
+// LOGIKA GAMBAR BASE 64 LOGO
 // =========================================================================
-// Mengambil path absolut otomatis dari root sistem
 $path_logo = realpath(__DIR__ . '/../assets/picture/logo_utb.png');
 
-// Fallback jika file sistem tidak mengenali pembacaan realpath (biasanya terjadi di beberapa OS)
 if (!$path_logo) {
     $path_logo = __DIR__ . '/../assets/picture/logo_utb.png';
 }
 
 if (file_exists($path_logo)) {
-    // Jika gambar ketemu, convert ke Base64
     $type = pathinfo($path_logo, PATHINFO_EXTENSION);
     $data_img = file_get_contents($path_logo);
     $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data_img);
     $logo_img = '<img src="' . $base64 . '" style="width: 75px; height: auto;">';
 } else {
-    // JIKA GAMBAR GAGAL DITEMUKAN, MUNCULKAN PESAN ERROR MERAH DI PDF
     $logo_img = '<div style="color:red; font-weight:bold; font-size:10px;">
                     GAMBAR GAGAL DIMUAT!<br>
                     Path yang dicari:<br>' . htmlspecialchars($path_logo) . '
@@ -149,6 +159,11 @@ if (file_exists($path_logo)) {
 // =========================================================================
 // STRUKTUR HTML
 // =========================================================================
+$nama_user_display  = $user_data['nama_user'] ?? $user_data['nama'] ?? '.......................';
+$nim_user_display   = $user_data['nim'] ?? '.......................';
+$perusahaan_display = $user_data['perusahaan'] ?? '.......................';
+$unit_bagian_display= $user_data['unit_bagian'] ?? '.......................';
+
 $html = '
 <!DOCTYPE html>
 <html lang="id">
@@ -239,18 +254,18 @@ $html = '
     <tr>
         <td class="col-label">NIM</td>
         <td class="col-colon">:</td>
-        <td class="col-value">' . (isset($user_data['nim']) ? htmlspecialchars($user_data['nim']) : '.......................') . '</td>
+        <td class="col-value">' . htmlspecialchars($nim_user_display) . '</td>
         <td class="col-label-right">Perusahaan</td>
         <td class="col-colon">:</td>
-        <td class="col-value">' . (isset($user_data['perusahaan']) ? htmlspecialchars($user_data['perusahaan']) : '.......................') . '</td>
+        <td class="col-value">' . htmlspecialchars($perusahaan_display) . '</td>
     </tr>
     <tr>
         <td class="col-label">Nama</td>
         <td class="col-colon">:</td>
-        <td class="col-value">' . htmlspecialchars($user_data['nama_user']) . '</td>
+        <td class="col-value">' . htmlspecialchars($nama_user_display) . '</td>
         <td class="col-label-right">Unit/Bagian</td>
         <td class="col-colon">:</td>
-        <td class="col-value">' . (isset($user_data['unit_bagian']) ? htmlspecialchars($user_data['unit_bagian']) : '.......................') . '</td>
+        <td class="col-value">' . htmlspecialchars($unit_bagian_display) . '</td>
     </tr>
 </table>
 
@@ -294,7 +309,7 @@ $dompdf->loadHtml($html);
 $dompdf->setPaper('A4', 'portrait');
 $dompdf->render();
 
-$nama_file = "Absensi_Magang_" . str_replace(' ', '_', $user_data['nama_user']) . ".pdf";
+$nama_file = "Absensi_Magang_" . str_replace(' ', '_', $nama_user_display) . ".pdf";
 $dompdf->stream($nama_file, ["Attachment" => 1]);
 exit;
 ?>
