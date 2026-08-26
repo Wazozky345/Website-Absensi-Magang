@@ -68,6 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['nama_user'] = $mentor['nama_mentor'];
                     $_SESSION['role'] = 'mentor';
 
+                    // [PERBAIKAN]: Reset timer timeout & paksa simpan sesi ke server
+                    $_SESSION['last_activity'] = time();
+                    session_write_close();
+
                     // $_SESSION['alert'] = ['type' => 'success', 'title' => 'Login Berhasil!', 'message' => 'Selamat datang!'];
                     header("Location: mentor/dashboard.php"); // FIX: Masuk ke folder mentor
                     exit;
