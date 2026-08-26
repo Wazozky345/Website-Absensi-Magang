@@ -66,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_id'] = $mentor['id'];
                     $_SESSION['username'] = $mentor['username'];
                     $_SESSION['nama_user'] = $mentor['nama_mentor'];
+                    $_SESSION['jabatan']   = !empty($mentor['jabatan']) ? $mentor['jabatan'] : 'Pembimbing Lapangan';
                     $_SESSION['role'] = 'mentor';
 
                     // [PERBAIKAN]: Reset timer timeout & paksa simpan sesi ke server
