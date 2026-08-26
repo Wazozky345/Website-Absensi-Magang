@@ -48,12 +48,7 @@ $jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION
                     <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor); ?></p>
                     <p class="text-[10px] text-gray-400"><?php echo htmlspecialchars($jabatan_display); ?></p>
                 </div>
-                <div class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                    <?php 
-                    $words = explode(' ', $nama_mentor);
-                    echo count($words) >= 2 ? strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1)) : strtoupper(substr($nama_mentor, 0, 2));
-                    ?>
-                </div>
+                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($nama_mentor); ?>&background=2563eb&color=ffffff&size=128" class="w-9 h-9 rounded-full border-2 border-blue-100 shadow-sm" alt="Avatar">
             </div>
         </header>
 
