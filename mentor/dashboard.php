@@ -1,6 +1,9 @@
 <?php
 // Murni memanggil otak dashboard mentor dari folder proses
 require_once __DIR__ . '/../proses/proses_dashboard_mentor.php';
+
+// Fallback label jabatan jika variabel $jabatan_mentor belum diinisialisasi pada file proses
+$jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($jabatan) ? $jabatan : 'Pembimbing Lapangan');
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -45,7 +48,7 @@ require_once __DIR__ . '/../proses/proses_dashboard_mentor.php';
                 <button id="profileDropdownBtn" onclick="toggleProfileDropdown()" class="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-gray-100 transition focus:outline-none">
                     <div class="text-right hidden sm:block">
                         <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor); ?></p>
-                        <p class="text-[10px] text-gray-400">Pembimbing Associate</p>
+                        <p class="text-[10px] text-gray-400"><?php echo htmlspecialchars($jabatan_display); ?></p>
                     </div>
                     <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($nama_mentor); ?>&background=2563eb&color=ffffff&size=128" class="w-9 h-9 rounded-full border-2 border-blue-100 shadow-sm">
                 </button>
@@ -54,7 +57,7 @@ require_once __DIR__ . '/../proses/proses_dashboard_mentor.php';
                 <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 transition-all">
                     <div class="px-4 py-2 border-b border-gray-100">
                         <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor); ?></p>
-                        <p class="text-[10px] text-emerald-600 font-semibold">● Sesi Mentor Aktif</p>
+                        <p class="text-[10px] text-emerald-600 font-semibold">● <?php echo htmlspecialchars($jabatan_display); ?></p>
                     </div>
 
                     <!-- TOMBOL BUKA MODAL UBAH PIN -->
