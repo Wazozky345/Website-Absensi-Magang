@@ -49,18 +49,19 @@ if ($result_users && $result_users->num_rows > 0) {
 
 <body class="flex min-h-screen items-center justify-center bg-[#F4F7FE] text-gray-800 select-none p-4 relative">
 
-    <!-- TOP NAVIGATION BAR -->
-    <header class="fixed top-0 left-0 right-0 p-4 sm:p-6 flex justify-between items-center z-30">
-        <a href="landing_page_utama.php" class="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md border border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-200 font-bold text-xs rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105">
+    <!-- TOP NAVIGATION BAR RESPONSIF -->
+    <header class="fixed top-0 left-0 right-0 p-3 sm:p-6 flex justify-between items-center z-30">
+        <a href="landing_page_utama.php" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-white/80 backdrop-blur-md border border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-200 font-bold text-[11px] sm:text-xs rounded-full shadow-sm hover:shadow-md transition-all duration-200 shrink-0">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>
-            Ganti Peran (Halaman Utama)
+            <span>Ganti Peran <span class="hidden sm:inline">(Halaman Utama)</span></span>
         </a>
 
-        <div class="flex items-center gap-2">
+        <!-- INDIKATOR TEKS POLOS DENGAN LAYOUT SIMETRIS -->
+        <div class="flex items-center gap-2 shrink-0">
             <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
-            <span class="text-xs font-bold text-gray-500 tracking-wider uppercase">Portal Mahasiswa</span>
+            <span class="text-[10px] sm:text-xs font-extrabold text-gray-500 tracking-wider uppercase">Portal Mahasiswa</span>
         </div>
     </header>
 
