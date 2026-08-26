@@ -5,6 +5,9 @@ require_once __DIR__ . '/../proses/proses_mentor_tugas.php';
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
+
+// Inisialisasi label jabatan dinamis dari variabel backend atau sesi login
+$jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION['jabatan']) ? $_SESSION['jabatan'] : 'Pembimbing Lapangan');
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -51,7 +54,7 @@ if (empty($_SESSION['csrf_token'])) {
             <div class="flex items-center gap-3">
                 <div class="text-right hidden sm:block">
                     <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor); ?></p>
-                    <p class="text-[10px] text-gray-400">Pembimbing Lapangan</p>
+                    <p class="text-[10px] text-gray-400"><?php echo htmlspecialchars($jabatan_display); ?></p>
                 </div>
                 
                 <div class="w-9 h-9 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs ring-2 ring-blue-100">
@@ -91,7 +94,7 @@ if (empty($_SESSION['csrf_token'])) {
                             <input type="text" name="judul_tugas" required placeholder="Contoh: Analisis kebutuhan sistem minggu 7" class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 transition text-gray-800 placeholder-gray-400">
                         </div>
 
-                        <!-- DITUJUKAN UNTUK (OPSIONAL: SEMUA / SPESIFIK MAHASISWA) -->
+                        <!-- DITUJUKAN UNTUK -->
                         <div>
                             <label class="block text-xs font-bold text-gray-700 mb-2">Ditujukan Untuk <span class="text-rose-500">*</span></label>
                             <select name="target_mahasiswa" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 font-semibold text-gray-800">
@@ -151,7 +154,7 @@ if (empty($_SESSION['csrf_token'])) {
                 </form>
             </div>
 
-            <!-- DAFTAR TUGAS TERKIRIM DENGAN FITUR TARIK FILE & DELETE -->
+            <!-- DAFTAR TUGAS TERKIRIM -->
             <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-base font-bold text-gray-800">Daftar Penugasan Terdistribusi</h3>
@@ -393,25 +396,6 @@ if (empty($_SESSION['csrf_token'])) {
             const closeSidebarBtn = document.getElementById('closeSidebarBtn');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
 
-            const toggleSidebar = () => {
-                if (sidebar && sidebarOverlay) {
-                    sidebar.classList.toggle('-translate-x-full');
-                    sidebarOverlay.classList.toggle('hidden');
-                }
-            };
-
-            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleSidebar);
-            if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
-            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar');
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-
-            // Logika Toggle yang lebih fleksibel (Tahan banting meskipun tidak ada overlay)
             const toggleSidebar = () => {
                 if (sidebar) sidebar.classList.toggle('-translate-x-full');
                 if (sidebarOverlay) sidebarOverlay.classList.toggle('hidden');
