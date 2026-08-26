@@ -48,7 +48,7 @@ $jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION
                     <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor ?? 'Mentor'); ?></p>
                     <p class="text-[10px] text-gray-400"><?php echo htmlspecialchars($jabatan_display); ?></p>
                 </div>
-                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($nama_mentor ?? 'Mentor'); ?>&background=2563eb&color=ffffff&size=128" class="w-9 h-9 rounded-full border-2 border-blue-100">
+                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($nama_mentor ?? 'Mentor'); ?>&background=2563eb&color=ffffff&size=128" class="w-9 h-9 rounded-full border-2 border-blue-100 shadow-sm" alt="Avatar">
             </div>
         </header>
 
@@ -352,25 +352,6 @@ $jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION
             document.getElementById('postParafBase64').value = parafData;
             document.getElementById('formApprovalSubmit').submit();
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-            const sidebar = document.getElementById('sidebar') || document.querySelector('aside');
-            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-
-            const toggleSidebar = () => {
-                if (sidebar) {
-                    sidebar.classList.toggle('-translate-x-full');
-                    sidebar.classList.toggle('translate-x-0');
-                }
-                if (sidebarOverlay) sidebarOverlay.classList.toggle('hidden');
-            };
-
-            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleSidebar);
-            if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
-            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
-        });
     </script>
 </body>
 </html>
