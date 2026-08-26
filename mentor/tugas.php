@@ -379,22 +379,6 @@ $jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION
                 modal.classList.add('hidden');
             }, 300);
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar');
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-
-            const toggleSidebar = () => {
-                if (sidebar) sidebar.classList.toggle('-translate-x-full');
-                if (sidebarOverlay) sidebarOverlay.classList.toggle('hidden');
-            };
-
-            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleSidebar);
-            if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
-            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
-        });
     </script>
 </body>
 </html>
