@@ -16,6 +16,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 $mentor_id   = $_SESSION['user_id'];
 $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
+$jabatan_mentor = $_SESSION['jabatan'] ?? 'Pembimbing Lapangan';
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
