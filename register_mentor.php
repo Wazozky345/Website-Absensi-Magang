@@ -11,11 +11,12 @@ $success_redirect = false;
 // PROSES PENDAFTARAN MENTOR
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama_mentor = trim($_POST['nama_mentor'] ?? '');
+    $jabatan     = trim($_POST['jabatan'] ?? '');
     $username    = trim($_POST['username'] ?? '');
     $pin         = trim($_POST['pin'] ?? '');
 
     // Validasi Input Sederhana
-    if (empty($nama_mentor) || empty($username) || empty($pin)) {
+    if (empty($nama_mentor) || empty($jabatan) || empty($username) || empty($pin)) {
         $error_msg = 'Semua kolom wajib diisi!';
     } elseif (strlen($pin) !== 4 || !ctype_digit($pin)) {
         // Validasi ketat: PIN harus tepat 4 digit angka
@@ -31,8 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error_msg = 'Username sudah terdaftar! Gunakan username lain.';
         } else {
             // 2. Simpan Data Mentor Baru ke Database `mentors`
-            $stmt_insert = $conn->prepare("INSERT INTO mentors (username, nama_mentor, pin, jabatan) VALUES (?, ?, ?, 'Pembimbing Lapangan')");
-            $stmt_insert->bind_param("sss", $username, $nama_mentor, $pin);
+            $stmt_insert = $conn->prepare("INSERT INTO mentors (username, nama_mentor, jabatan, pin) VALUES (?, ?, ?, ?)");
+            $stmt_insert->bind_param("ssss", $username, $nama_mentor, $jabatan, $pin);
 
             if ($stmt_insert->execute()) {
                 $new_mentor_id = $stmt_insert->insert_id;
@@ -42,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['role']      = 'mentor';
                 $_SESSION['nama_user'] = $nama_mentor;
                 $_SESSION['username']  = $username;
+                $_SESSION['jabatan']   = $jabatan; // <-- PENAMBAHAN: Menyimpan jabatan ke sesi login
 
                 $success_redirect = true;
             } else {
@@ -105,6 +107,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Nama Lengkap</label>
                 <input type="text" name="nama_mentor" required placeholder="Contoh: Budi Nugroho" 
                        value="<?php echo htmlspecialchars($_POST['nama_mentor'] ?? ''); ?>"
+                       class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition font-semibold">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Jabatan / Posisi</label>
+                <input type="text" name="jabatan" required placeholder="Contoh: Senior Software Engineer / Pembimbing" 
+                       value="<?php echo htmlspecialchars($_POST['jabatan'] ?? ''); ?>"
                        class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition font-semibold">
             </div>
 
