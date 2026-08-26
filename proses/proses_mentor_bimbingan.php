@@ -17,6 +17,7 @@ if (empty($_SESSION['csrf_token'])) {
 
 $mentor_id   = $_SESSION['user_id'] ?? 1;
 $nama_mentor = $_SESSION['nama_user'] ?? 'Dr. Alvin Nurfaiz, M.T.';
+$jabatan_mentor = $_SESSION['jabatan'] ?? 'Pembimbing Lapangan'; // pemanggilan jabatan mentor dari login mentor
 
 // =========================================================================
 // 1. LOGIKA PENERIMAAN AKSI (POST) - CRUD BIMBINGAN
