@@ -108,6 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_login_mahasis
             $_SESSION['konsentrasi'] = $user['konsentrasi'];
             $_SESSION['email']       = $user['email'];
 
+            // [PERBAIKAN]: Reset timer timeout & paksa simpan sesi ke server
+            $_SESSION['last_activity'] = time(); 
+            session_write_close();
+
             // Alihkan Pengguna ke Dashboard Utama Mahasiswa
             header("Location: ../mahasiswa/dashboard_mahasiswa.php");
             exit;
