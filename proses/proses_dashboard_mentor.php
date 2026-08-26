@@ -19,6 +19,33 @@ $mentor_id   = $_SESSION['user_id'];
 $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
 
 // =========================================================================
+// AMBIL DATA PROFIL & JABATAN MENTOR DARI DATABASE / SESI
+// =========================================================================
+$jabatan_mentor = $_SESSION['jabatan'] ?? '';
+
+// Jika di sesi belum ada, lakukan query ke database
+if (empty($jabatan_mentor)) {
+    $stmt_m = $conn->prepare("SELECT nama_mentor, jabatan FROM mentors WHERE id = ?");
+    if ($stmt_m) {
+        $stmt_m->bind_param("i", $mentor_id);
+        $stmt_m->execute();
+        $res_m = $stmt_m->get_result();
+        if ($row_m = $res_m->fetch_assoc()) {
+            $nama_mentor    = !empty($row_m['nama_mentor']) ? $row_m['nama_mentor'] : $nama_mentor;
+            $jabatan_mentor = !empty($row_m['jabatan']) ? $row_m['jabatan'] : 'Pembimbing Lapangan';
+            $_SESSION['jabatan']   = $jabatan_mentor;
+            $_SESSION['nama_user'] = $nama_mentor;
+        }
+        $stmt_m->close();
+    }
+}
+
+// Fallback default jika data masih kosong
+if (empty($jabatan_mentor)) {
+    $jabatan_mentor = 'Pembimbing Lapangan';
+}
+
+// =========================================================================
 // 3. QUERY STATISTIK KPI (DIPERBAIKI LOGIKANYA)
 // =========================================================================
 
