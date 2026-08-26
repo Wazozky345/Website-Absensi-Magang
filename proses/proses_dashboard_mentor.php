@@ -17,11 +17,7 @@ if (empty($_SESSION['csrf_token'])) {
 
 $mentor_id   = $_SESSION['user_id'];
 $nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
-
-// =========================================================================
-// AMBIL DATA PROFIL & JABATAN MENTOR DARI DATABASE / SESI
-// =========================================================================
-$jabatan_mentor = $_SESSION['jabatan'] ?? '';
+$jabatan_mentor = $_SESSION['jabatan'] ?? 'Pembimbing Lapangan';
 
 // Jika di sesi belum ada, lakukan query ke database
 if (empty($jabatan_mentor)) {
