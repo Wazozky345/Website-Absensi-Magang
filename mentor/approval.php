@@ -1,5 +1,8 @@
 <?php
 require_once __DIR__ . '/../proses/proses_mentor_approval.php';
+
+// Inisialisasi label jabatan dinamis dari variabel backend atau sesi login
+$jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION['jabatan']) ? $_SESSION['jabatan'] : 'Pembimbing Lapangan');
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -43,7 +46,7 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
             <div class="flex items-center gap-3">
                 <div class="text-right hidden sm:block">
                     <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor ?? 'Mentor'); ?></p>
-                    <p class="text-[10px] text-gray-400">Pembimbing Lapangan</p>
+                    <p class="text-[10px] text-gray-400"><?php echo htmlspecialchars($jabatan_display); ?></p>
                 </div>
                 <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($nama_mentor ?? 'Mentor'); ?>&background=2563eb&color=ffffff&size=128" class="w-9 h-9 rounded-full border-2 border-blue-100">
             </div>
@@ -90,7 +93,6 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
                                     if (($tg['status_approval'] ?? '') === 'Disetujui') $status_class = 'bg-emerald-50 text-emerald-600';
                                     elseif (($tg['status_approval'] ?? '') === 'Perlu Revisi') $status_class = 'bg-rose-50 text-rose-600';
 
-                                    // AMAN DARI ENTER (NEWLINE) UNTUK JAVASCRIPT
                                     $js_judul = addslashes(str_replace(["\r", "\n"], ["", " "], $tg['judul_tugas']));
                                     $js_catatan = addslashes(str_replace(["\r", "\n"], ["", " "], $tg['catatan_mentor'] ?? ''));
                                 ?>
@@ -179,7 +181,6 @@ require_once __DIR__ . '/../proses/proses_mentor_approval.php';
 
                                     $tgl_tampil = date('d M Y', strtotime($lb['tanggal']));
                                     
-                                    // AMAN DARI ENTER (NEWLINE) UNTUK JAVASCRIPT
                                     $popup_judul = "Logbook ($tgl_tampil): " . mb_strimwidth($lb['catatan'], 0, 50, '...');
                                     $js_judul = addslashes(str_replace(["\r", "\n"], ["", " "], $popup_judul));
                                     $js_catatan = addslashes(str_replace(["\r", "\n"], ["", " "], $lb['catatan_mentor'] ?? ''));
