@@ -1,6 +1,9 @@
 <?php
 // Murni memanggil otak proses_mentor_bimbingan.php
 require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
+
+// Inisialisasi label jabatan dinamis dari variabel backend atau sesi login
+$jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION['jabatan']) ? $_SESSION['jabatan'] : 'Pembimbing Lapangan');
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -43,7 +46,7 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
             <div class="flex items-center gap-3">
                 <div class="text-right hidden sm:block">
                     <p class="text-xs font-bold text-gray-800"><?php echo htmlspecialchars($nama_mentor); ?></p>
-                    <p class="text-[10px] text-gray-400">Pembimbing Lapangan</p>
+                    <p class="text-[10px] text-gray-400"><?php echo htmlspecialchars($jabatan_display); ?></p>
                 </div>
                 <div class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                     <?php 
@@ -225,9 +228,8 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                         <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-bold">Timeline</span>
                     </div>
 
-                    <!-- KONTINER TIMELINE (Akan diisi Javascript) -->
                     <div class="space-y-4 max-h-[500px] overflow-y-auto pr-2" id="containerTimeline">
-                        <!-- Data di-render disini -->
+                        <!-- Data di-render via JS -->
                     </div>
                 </div>
 
@@ -236,9 +238,7 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
         </div>
     </main>
 
-    <!-- SCRIPT INTERAKTIF CONTROLLER -->
     <script>
-        // Tangkap JSON timeline dari backend PHP
         const timelineDataDB = <?php echo $json_timeline; ?>;
 
         function updateMetodeStyle(metode) {
@@ -256,7 +256,6 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
             }
         }
 
-        // MERENDER TIMELINE BERDASARKAN USER YANG DIPILIH
         function updateSelectedStudentInfo() {
             const select = document.getElementById('selectUserId');
             if (!select || select.options.length === 0) return;
@@ -266,11 +265,9 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
             const nama = selectedOption.getAttribute('data-nama') || selectedOption.text.split(' (')[0];
             const nim  = selectedOption.getAttribute('data-nim')  || '-';
 
-            // Update Label Nama & NIM
             document.getElementById('labelMahasiswaNIM').innerText  = "NIM: " + nim;
             document.getElementById('labelTimelineNama').innerText  = nama;
 
-            // Render Ulang Timeline
             const container = document.getElementById('containerTimeline');
             container.innerHTML = ''; 
 
@@ -315,7 +312,6 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
                 btnSubmit.innerText = "Simpan Catatan";
             }
 
-            // Atur Mahasiswa Bimbingan
             const selectMhs = document.getElementById('selectUserId');
             if (userId && userId > 0) {
                 selectMhs.value = userId;
@@ -326,7 +322,6 @@ require_once __DIR__ . '/../proses/proses_mentor_bimbingan.php';
             }
             updateSelectedStudentInfo();
 
-            // Set Tanggal/Waktu yang diklik di kalender
             if (waktu) {
                 document.getElementById('inputWaktuSesi').value = waktu;
             }
