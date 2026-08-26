@@ -30,26 +30,34 @@ if (!is_dir($dir_log)) {
 }
 
 // --- FITUR BARU: SMART GARBAGE COLLECTOR ---
-// Membersihkan file log IP secara cerdas agar tidak nyampah di server.
-// Berjalan secara acak (probabilitas 5%) agar tidak membebani server.
-if (rand(1, 100) <= 5) {
-    $files = glob($dir_log . '*.json');
-    $waktu_sekarang = time();
-    if ($files) {
-        foreach ($files as $file) {
-            if (is_file($file)) {
-                $content = json_decode(file_get_contents($file), true);
-                
+// Berjalan 100% pada setiap request untuk memastikan log tidak nyampah.
+$files = glob($dir_log . '*.json');
+$waktu_sekarang = time();
+
+if ($files) {
+    foreach ($files as $file) {
+        if (is_file($file)) {
+            // Lewati pengecekan untuk file IP milik user yang sedang mengakses detik ini
+            // (karena akan ditulis ulang di akhir script)
+            if ($file === $file_path) continue;
+
+            $json_data = file_get_contents($file);
+            $content = json_decode($json_data, true);
+            
+            if (is_array($content)) {
                 // 1. User Normal: Hapus jika file sudah tidak diupdate lebih dari 5 menit (300 detik)
                 if (isset($content['banned_until']) && $content['banned_until'] == 0) {
                     if (($waktu_sekarang - filemtime($file)) > 300) {
-                        unlink($file);
+                        @unlink($file); // Tambahkan '@' agar error permission senyap (tidak merusak UI)
                     }
                 }
                 // 2. User Diblokir: Hapus hanya jika masa hukuman 24 jam sudah selesai
-                elseif (isset($content['banned_until']) && $waktu_sekarang > $content['banned_until']) {
-                    unlink($file);
+                elseif (isset($content['banned_until']) && $content['banned_until'] > 0 && $waktu_sekarang > $content['banned_until']) {
+                    @unlink($file);
                 }
+            } else {
+                // 3. Jika file korup/kosong tapi tersisa di server, langsung bersihkan
+                @unlink($file);
             }
         }
     }
