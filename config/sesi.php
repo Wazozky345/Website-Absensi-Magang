@@ -9,8 +9,9 @@ require_once __DIR__ . '/ddos_layer.php';
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 // ==========================================================
-session_start();
-
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 // Pabrik CSRF Token: Buat token acak jika belum ada di sesi ini
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
