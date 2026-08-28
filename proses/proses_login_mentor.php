@@ -5,6 +5,8 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../config/koneksi.php';
 date_default_timezone_set('Asia/Jakarta');
 
+// ... (lanjutkan kode login ke bawah seperti biasa)
+require_once __DIR__ . '/../config/koneksi.php';
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -60,13 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if ($pin_valid) {
-                    session_regenerate_id(true);
+                    // session_regenerate_id(true);
                     $conn->query("UPDATE mentors SET failed_attempts = 0, lockout_time = NULL WHERE id = $mentor_id");
 
                     $_SESSION['user_id'] = $mentor['id'];
                     $_SESSION['username'] = $mentor['username'];
                     $_SESSION['nama_user'] = $mentor['nama_mentor'];
-                    $_SESSION['jabatan']   = !empty($mentor['jabatan']) ? $mentor['jabatan'] : 'Pembimbing Lapangan';
+                    $_SESSION['jabatan']   = !empty($mentor['jabatan']) ? $mentor['jabatan'] : 'Pembimbing Lapangan'; //penambahan jabatan agar tidak static
                     $_SESSION['role'] = 'mentor';
 
                     // [PERBAIKAN]: Reset timer timeout & paksa simpan sesi ke server
