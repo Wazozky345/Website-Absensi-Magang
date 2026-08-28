@@ -1,9 +1,6 @@
 <?php
-// 1. Inisialisasi Sesi & Koneksi
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-require_once __DIR__ . '/../config/koneksi.php';
+// 1. Panggil Sesi Pusat (Otomatis panggil session_start, proteksi timeout 24 jam, dan koneksi.php)
+require_once __DIR__ . '/../config/sesi.php';
 
 // 2. Proteksi Hak Akses Role Mentor
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'mentor') {
@@ -15,8 +12,8 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-$mentor_id   = $_SESSION['user_id'];
-$nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
+$mentor_id      = $_SESSION['user_id'];
+$nama_mentor    = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
 $jabatan_mentor = $_SESSION['jabatan'] ?? 'Pembimbing Lapangan';
 
 // Jika di sesi belum ada, lakukan query ke database
