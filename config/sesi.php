@@ -33,12 +33,18 @@ if (!isset($_SESSION['nama_user']) || !isset($_SESSION['user_id'])) {
     exit;
 }
 
-// 2. Cek Timeout (300 detik / 5 Menit)
-$timeout_duration = 300; 
+// 2. Cek Timeout Berdasarkan Role
+$timeout_duration = 300; // Default: 300 detik (5 Menit) untuk mahasiswa
+
+// Jika yang login adalah mentor, berikan sesi 1 Hari (86400 detik)
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'mentor') {
+    $timeout_duration = 86400; 
+}
+
 if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout_duration) {
     session_unset();
     session_destroy();
-    // [FIX]: Hancurkan sesi dan lemparkan kembali ke Halaman Pemilihan Peran
+    // Lempar kembali ke Halaman Pemilihan Peran
     header("Location: ../index.php");
     exit;
 }
