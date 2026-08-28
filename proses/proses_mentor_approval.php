@@ -1,12 +1,8 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
+require_once __DIR__ . '/../config/sesi.php';
+require_once __DIR__ . '/../config/koneksi.php';
 date_default_timezone_set('Asia/Jakarta');
 error_reporting(E_ALL & ~E_DEPRECATED);
-
-require_once __DIR__ . '/../config/koneksi.php';
 
 // Validasi Hak Akses Mentor
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'mentor') {
