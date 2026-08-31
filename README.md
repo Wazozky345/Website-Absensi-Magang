@@ -171,6 +171,7 @@ Meskipun nama berkas mempertahankan konvensi legacy (export_excel.php), mesin ut
 
 ## 📂 Struktur Direktori Proyek
 
+```text
 wazozky345-website-absensi-magang/
 ├── README.md                          # Dokumentasi utama proyek
 ├── index.php                          # Smart Router & Pemilih Peran Portal
@@ -224,7 +225,6 @@ wazozky345-website-absensi-magang/
     ├── .htaccess                      # Execution Blocker & Forced Attachment Downloader
     ├── tugas_mahasiswa/               # Repository Berkas Tugas Mahasiswa
     └── tugas_mentor/                  # Repository Lampiran File Penugasan Mentor
-
 
 ---
 
