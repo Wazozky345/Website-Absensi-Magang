@@ -256,7 +256,7 @@ wazozky345-website-absensi-magang/
 ## 📌 Catatan Evaluasi & Temuan Arsitektur
 
 * Penyelarasan Enkripsi PIN Mentor: Form registrasi mahasiswa (register_mahasiswa.php) telah menerapkan hashing Bcrypt. Namun pada register_mentor.php, PIN tersimpan secara plaintext untuk menjaga kompatibilitas data seed awal (1234). Disarankan untuk melakukan migrasi hashing seragam pada rilis produksi mendatang.
-* Optimasi Berkas Autentikasi: Terdapat file proses/proses_login.php dan proses/proses_login_mahasiswa.php yang memiliki area tugas bersirisan. Penggabungan berkas ini disarankan untuk memudahkan pemeliharaan kode (maintenance).
+* Optimasi Berkas Autentikasi: Terdapat file proses/proses_login.php dan proses/proses_login_mahasiswa.php yang memiliki area tugas beririsan. Penggabungan berkas ini disarankan untuk memudahkan pemeliharaan kode (maintenance).
 
 ---
 
