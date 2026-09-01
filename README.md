@@ -228,20 +228,6 @@ wazozky345-website-absensi-magang/
 
 ---
 
-## 🗄️ Skema Tabel Database
-
-| Nama Tabel     | Fungsi Utama                  | Key Columns / Features                                               |
-|----------------|-------------------------------|----------------------------------------------------------------------|
-| `users`        | Entitas Data Mahasiswa        | `nim`, `pin` (Bcrypt), `failed_attempts`, `lockout_time`             |
-| `mentors`      | Entitas Data Mentor/Pembimbing| `username`, `pin`, `jabatan`, `failed_attempts`                      |
-| `kehadiran`    | Catatan Absensi & Logbook     | `tanggal`, `status`, `logbook_kegiatan`, `paraf_mentor`, `status_approval`|
-| `agenda`       | Agenda Kalender               | `kategori` (Industri/Kampus/Lembur), `tanggal`, `keterangan`         |
-| `milestones`   | Target Capaian Bulanan        | `judul_milestone`, `bulan`, `status` (Pending/Berjalan/Selesai)      |
-| `bimbingan`    | Sesi Konsultasi Magang        | `mentor_id`, `nim`, `tanggal_waktu`, `metode`, `catatan_revisi`      |
-| `tugas`        | Master Penugasan Mentor       | `mentor_id`, `judul_tugas`, `deskripsi`, `file_lampiran`, `tenggat`  |
-| `tugas_detail` | Pengumpulan Tugas Mahasiswa   | `tugas_id`, `nim`, `file_jawaban`, `status_tugas`, `catatan_mentor`  |
----
-
 ## ⚙️ Panduan Instalasi Lokal (Local Setup)
 
 1. Lingkungan Server Lokal:
