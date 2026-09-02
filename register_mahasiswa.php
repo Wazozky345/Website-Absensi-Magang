@@ -88,9 +88,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="bg-pattern flex flex-col min-h-screen text-gray-800 items-center justify-center p-4 py-8">
 
     <!-- Tombol Kembali -->
-    <a href="landing_page_utama.php" class="absolute top-6 left-6 flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-blue-600 transition bg-white px-4 py-2.5 rounded-full shadow-sm">
+    <a href="login.php?switch=1" class="absolute top-6 left-6 flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-blue-600 transition bg-white px-4 py-2.5 rounded-full shadow-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-        Kembali Utama
+        Kembali ke Login
     </a>
 
     <div class="w-full max-w-lg bg-white rounded-3xl shadow-xl border border-gray-100 p-8 space-y-6">
@@ -167,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="text-center pt-2 border-t border-gray-100">
             <p class="text-xs text-gray-500">Sudah punya akun? 
-                <a href="login.php" class="text-blue-600 font-bold hover:underline">Masuk disini</a>
+                <a href="login.php?switch=1" class="text-blue-600 font-bold hover:underline">Masuk disini</a>
             </p>
         </div>
 
