@@ -5,7 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/config/koneksi.php';
 
-$error_msg   = '';
+$error_msg        = '';
 $success_redirect = false;
 
 // PROSES PENDAFTARAN MENTOR
@@ -36,15 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_insert->bind_param("ssss", $username, $nama_mentor, $jabatan, $pin);
 
             if ($stmt_insert->execute()) {
-                $new_mentor_id = $stmt_insert->insert_id;
-
-                // 3. AUTO LOGIN (Buat Sesi Login Mentor Seketika)
-                $_SESSION['user_id']   = $new_mentor_id;
-                $_SESSION['role']      = 'mentor';
-                $_SESSION['nama_user'] = $nama_mentor;
-                $_SESSION['username']  = $username;
-                $_SESSION['jabatan']   = $jabatan; // <-- PENAMBAHAN: Menyimpan jabatan ke sesi login
-
+                // Berhasil tersimpan, trigger notifikasi tanpa auto-login
                 $success_redirect = true;
             } else {
                 $error_msg = 'Gagal mendaftarkan akun: ' . $conn->error;
@@ -135,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 transition text-sm mt-2">
-                Daftar & Masuk Dashboard
+                Daftar Akun Mentor
             </button>
         </form>
 
@@ -151,12 +143,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         Swal.fire({
             icon: 'success',
-            title: 'Pendaftaran Berhasil!',
-            text: 'Akun Mentor telah aktif. Mengarahkan ke Dashboard...',
-            timer: 1500,
-            showConfirmButton: false
+            title: 'Akun Berhasil Dibuat!',
+            text: 'Silakan login menggunakan akun yang telah Anda daftarkan.',
+            timer: 3000,
+            timerProgressBar: true,
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#2563eb',
+            allowOutsideClick: false
         }).then(() => {
-            window.location.href = 'mentor/approval.php';
+            window.location.href = 'login-mentor.php';
         });
     </script>
     <?php endif; ?>
