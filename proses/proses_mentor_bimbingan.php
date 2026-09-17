@@ -51,7 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $target_user_id = intval($_POST['user_id'] ?? 0);
+    $raw_user_id    = $_POST['user_id'] ?? '0';
+    $target_user_id = intval($raw_user_id);
     $nim_input      = trim($_POST['nim_mahasiswa'] ?? '');
     $tanggal_waktu  = trim($_POST['waktu_sesi'] ?? date('Y-m-d H:i:s'));
     $topik          = trim($_POST['topik'] ?? '');
@@ -65,18 +66,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!in_array($metode, ['Tatap Muka', 'Online'])) $metode = 'Tatap Muka';
 
-    if ($target_user_id <= 0 && !empty($nim_input)) {
-        $stmt_u = $conn->prepare("SELECT id FROM users WHERE nim = ? LIMIT 1");
-        if ($stmt_u) {
-            $stmt_u->bind_param("s", $nim_input);
-            $stmt_u->execute();
-            $res_u = $stmt_u->get_result();
-            if ($res_u && $res_u->num_rows === 1) $target_user_id = $res_u->fetch_assoc()['id'];
-            $stmt_u->close();
+    if ($raw_user_id !== 'all') {
+        if ($target_user_id <= 0 && !empty($nim_input)) {
+            $stmt_u = $conn->prepare("SELECT id FROM users WHERE nim = ? LIMIT 1");
+            if ($stmt_u) {
+                $stmt_u->bind_param("s", $nim_input);
+                $stmt_u->execute();
+                $res_u = $stmt_u->get_result();
+                if ($res_u && $res_u->num_rows === 1) $target_user_id = $res_u->fetch_assoc()['id'];
+                $stmt_u->close();
+            }
         }
-    }
 
-    if ($target_user_id <= 0) $target_user_id = 1; 
+        if ($target_user_id <= 0) $target_user_id = 1; 
+    }
 
     if (empty($topik) || empty($catatan_revisi)) {
         $_SESSION['alert'] = [
@@ -108,14 +111,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_upd->close();
         }
     } else {
-        $stmt_ins = $conn->prepare("INSERT INTO bimbingan (mentor_id, user_id, tanggal_waktu, topik, metode, catatan_revisi, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        if ($stmt_ins) {
-            $stmt_ins->bind_param("iisssss", $mentor_id, $target_user_id, $tanggal_waktu, $topik, $metode, $catatan_revisi, $status);
-            if ($stmt_ins->execute()) {
+        // PENANGANAN INPUT BARU DENGAN DUKUNGAN SEMUA MAHASISWA (BULK INSERT)
+        if ($raw_user_id === 'all') {
+            $q_all_users = $conn->query("SELECT id FROM users");
+            $success_count = 0;
+            if ($q_all_users && $q_all_users->num_rows > 0) {
+                $stmt_ins = $conn->prepare("INSERT INTO bimbingan (mentor_id, user_id, tanggal_waktu, topik, metode, catatan_revisi, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                if ($stmt_ins) {
+                    while ($u_row = $q_all_users->fetch_assoc()) {
+                        $uid_single = $u_row['id'];
+                        $stmt_ins->bind_param("iisssss", $mentor_id, $uid_single, $tanggal_waktu, $topik, $metode, $catatan_revisi, $status);
+                        if ($stmt_ins->execute()) {
+                            $success_count++;
+                        }
+                    }
+                    $stmt_ins->close();
+                }
+            }
+
+            if ($success_count > 0) {
                 $_SESSION['alert'] = [
                     'type' => 'success',
                     'title' => 'Bimbingan Disimpan!',
-                    'message' => 'Jadwal bimbingan & catatan revisi berhasil didaftarkan.'
+                    'message' => 'Jadwal bimbingan & catatan revisi berhasil didaftarkan untuk seluruh mahasiswa.'
                 ];
             } else {
                 $_SESSION['alert'] = [
@@ -124,7 +142,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'message' => 'Terjadi kesalahan saat menyimpan bimbingan.'
                 ];
             }
-            $stmt_ins->close();
+        } else {
+            $stmt_ins = $conn->prepare("INSERT INTO bimbingan (mentor_id, user_id, tanggal_waktu, topik, metode, catatan_revisi, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            if ($stmt_ins) {
+                $stmt_ins->bind_param("iisssss", $mentor_id, $target_user_id, $tanggal_waktu, $topik, $metode, $catatan_revisi, $status);
+                if ($stmt_ins->execute()) {
+                    $_SESSION['alert'] = [
+                        'type' => 'success',
+                        'title' => 'Bimbingan Disimpan!',
+                        'message' => 'Jadwal bimbingan & catatan revisi berhasil didaftarkan.'
+                    ];
+                } else {
+                    $_SESSION['alert'] = [
+                        'type' => 'error',
+                        'title' => 'Gagal Menyimpan',
+                        'message' => 'Terjadi kesalahan saat menyimpan bimbingan.'
+                    ];
+                }
+                $stmt_ins->close();
+            }
         }
     }
 
