@@ -58,6 +58,7 @@ $jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION
 
         <div class="p-4 md:p-8 space-y-6">
 
+            <!-- PEMBUNGKUS UTAMA 3 KOLOM GRID -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
                 <!-- KOLOM UTAMA (KIRI - 2 GRID SPAN) -->
@@ -88,7 +89,7 @@ $jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION
                             <div class="py-1">Sen</div><div class="py-1">Sel</div><div class="py-1">Rab</div><div class="py-1">Kam</div><div class="py-1">Jum</div><div class="py-1 text-rose-400">Sab</div><div class="py-1 text-rose-400">Min</div>
                         </div>
 
-                        <!-- GRID KALENDER INTERAKTIF -->
+                        <!-- GRID KALENDER INTERAKTIF (SUDAH DIPERBAIKI LOGIKA STACKING) -->
                         <div class="grid grid-cols-7 gap-1.5">
                             <?php for ($i = 0; $i < $slot_kosong; $i++): ?>
                                 <div class="min-h-[64px] bg-gray-50/40 rounded-xl border border-dashed border-gray-100"></div>
@@ -96,43 +97,52 @@ $jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION
 
                             <?php for ($d = 1; $d <= $total_hari; $d++): 
                                 $tgl_slot = sprintf('%s-%s-%02dT10:00', $tahun_aktif, $bulan_aktif, $d);
-                                
-                                if (isset($bimbingan_db[$d]) && !empty($bimbingan_db[$d])):
-                                    foreach ($bimbingan_db[$d] as $bm):
-                                        $is_revisi   = ($bm['status'] === 'Revisi');
-                                        $bg_card     = $is_revisi ? 'bg-rose-50/80 border-rose-400 text-rose-600' : 'bg-blue-50/80 border-blue-400 text-blue-600';
-                                        $badge_color = $is_revisi ? 'bg-rose-500' : 'bg-blue-600';
-
-                                        $words = explode(' ', $bm['nama_user']);
-                                        $inisial = count($words) >= 2 ? strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1)) : strtoupper(substr($bm['nama_user'], 0, 2));
-
-                                        $js_id      = $bm['id'];
-                                        $js_user_id = $bm['user_id'];
-                                        $js_nama    = addslashes($bm['nama_user']);
-                                        $js_nim     = addslashes($bm['nim']);
-                                        $js_waktu   = date('Y-m-d\TH:i', strtotime($bm['tanggal_waktu']));
-                                        $js_topik   = addslashes($bm['topik']);
-                                        $js_metode  = addslashes($bm['metode']);
-                                        $js_status  = addslashes($bm['status']);
-                                        $js_catatan = str_replace(["\r", "\n"], ["", " "], addslashes($bm['catatan_revisi'] ?? ''));
+                                $ada_bimbingan = isset($bimbingan_db[$d]) && !empty($bimbingan_db[$d]);
                             ?>
-                                        <div class="min-h-[64px] border-2 rounded-xl p-1 text-[10px] cursor-pointer shadow-sm hover:scale-105 transition <?php echo $bg_card; ?>"
-                                             onclick="bukaDetailForm('edit', '<?php echo $js_id; ?>', '<?php echo $js_user_id; ?>', '<?php echo $js_nama; ?>', '<?php echo $js_nim; ?>', '<?php echo $js_waktu; ?>', '<?php echo $js_topik; ?>', '<?php echo $js_metode; ?>', '<?php echo $js_status; ?>', '<?php echo $js_catatan; ?>')">
-                                            <span class="font-bold block mb-0.5"><?php echo $d; ?></span>
-                                            <span class="<?php echo $badge_color; ?> text-white font-bold px-1.5 py-0.5 rounded block truncate">
-                                                <?php echo ($is_revisi ? 'Revisi ' : 'Bimbingan ') . $inisial; ?>
-                                            </span>
-                                        </div>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <div class="min-h-[64px] bg-white border border-gray-100 rounded-xl p-1 text-[11px] hover:border-blue-300 transition cursor-pointer flex flex-col justify-between"
-                                         onclick="bukaDetailForm('create', 0, '', '', '', '<?php echo $tgl_slot; ?>', '', 'Tatap Muka', 'Terjadwal', '')">
-                                        <span class="font-bold text-gray-400"><?php echo $d; ?></span>
+                                <div class="min-h-[70px] bg-white border <?php echo $ada_bimbingan ? 'border-blue-200 shadow-sm' : 'border-gray-100 hover:border-blue-300 cursor-pointer'; ?> rounded-xl p-1 text-[11px] transition flex flex-col gap-1 relative group"
+                                     <?php if(!$ada_bimbingan): ?>onclick="bukaDetailForm('create', 0, '', '', '', '<?php echo $tgl_slot; ?>', '', 'Tatap Muka', 'Terjadwal', '')"<?php endif; ?>>
+                                    
+                                    <div class="flex justify-between items-center px-1 pt-0.5 mb-0.5">
+                                        <span class="font-bold <?php echo $ada_bimbingan ? 'text-gray-800' : 'text-gray-400'; ?>"><?php echo $d; ?></span>
+                                        <?php if($ada_bimbingan): ?>
+                                            <!-- Tombol (+) kecil jika ingin tambah agenda di tanggal yang sudah ada isinya -->
+                                            <button type="button" onclick="event.stopPropagation(); bukaDetailForm('create', 0, '', '', '', '<?php echo $tgl_slot; ?>', '', 'Tatap Muka', 'Terjadwal', '')" class="text-blue-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition" title="Tambah Bimbingan">
+                                                ➕
+                                            </button>
+                                        <?php endif; ?>
                                     </div>
-                                <?php endif; ?>
+
+                                    <?php if ($ada_bimbingan): ?>
+                                        <div class="flex flex-col gap-1 overflow-y-auto max-h-[85px] no-scrollbar">
+                                        <?php foreach ($bimbingan_db[$d] as $bm):
+                                            $is_revisi   = ($bm['status'] === 'Revisi');
+                                            $bg_badge    = $is_revisi ? 'bg-rose-500 hover:bg-rose-600' : 'bg-blue-600 hover:bg-blue-700';
+
+                                            $words = explode(' ', $bm['nama_user']);
+                                            $inisial = count($words) >= 2 ? strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1)) : strtoupper(substr($bm['nama_user'], 0, 2));
+
+                                            $js_id      = $bm['id'];
+                                            $js_user_id = $bm['user_id'];
+                                            $js_nama    = addslashes($bm['nama_user']);
+                                            $js_nim     = addslashes($bm['nim']);
+                                            $js_waktu   = date('Y-m-d\TH:i', strtotime($bm['tanggal_waktu']));
+                                            $js_topik   = addslashes($bm['topik']);
+                                            $js_metode  = addslashes($bm['metode']);
+                                            $js_status  = addslashes($bm['status']);
+                                            $js_catatan = str_replace(["\r", "\n"], ["", " "], addslashes($bm['catatan_revisi'] ?? ''));
+                                        ?>
+                                            <div class="<?php echo $bg_badge; ?> text-white font-bold px-1.5 py-1 rounded cursor-pointer text-[9px] truncate shadow-sm transition transform hover:scale-[1.02]"
+                                                 title="<?php echo htmlspecialchars($bm['topik']); ?>"
+                                                 onclick="event.stopPropagation(); bukaDetailForm('edit', '<?php echo $js_id; ?>', '<?php echo $js_user_id; ?>', '<?php echo $js_nama; ?>', '<?php echo $js_nim; ?>', '<?php echo $js_waktu; ?>', '<?php echo $js_topik; ?>', '<?php echo $js_metode; ?>', '<?php echo $js_status; ?>', '<?php echo $js_catatan; ?>')">
+                                                <?php echo ($is_revisi ? 'Revisi: ' : 'Bimbingan: ') . $inisial; ?>
+                                            </div>
+                                        <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
                             <?php endfor; ?>
                         </div>
-                    </div>
+                    </div> <!-- PENUTUP CARD 1 -->
 
                     <!-- CARD 2: DETAIL BIMBINGAN TERPILIH (FORM CRUD) -->
                     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100" id="cardFormDetail">
@@ -214,9 +224,9 @@ $jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION
                                 </div>
                             </div>
                         </form>
-                    </div>
+                    </div> <!-- PENUTUP CARD 2 -->
 
-                </div>
+                </div> <!-- PENUTUP KOLOM KIRI (LG:COL-SPAN-2) -->
 
                 <!-- KOLOM KANAN (RIWAYAT REVISI MAHASISWA TERPILIH) -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-5 h-fit sticky top-24">
@@ -231,9 +241,9 @@ $jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION
                     <div class="space-y-4 max-h-[500px] overflow-y-auto pr-2" id="containerTimeline">
                         <!-- Data di-render via JS -->
                     </div>
-                </div>
+                </div> <!-- PENUTUP CARD 3 / KOLOM KANAN -->
 
-            </div>
+            </div> <!-- PENUTUP PEMBUNGKUS 3 KOLOM GRID -->
 
         </div>
     </main>
