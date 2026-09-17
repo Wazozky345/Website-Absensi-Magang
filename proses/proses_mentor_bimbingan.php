@@ -13,8 +13,9 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 $mentor_id   = $_SESSION['user_id'] ?? 1;
-$nama_mentor = $_SESSION['nama_user'] ?? 'Dr. Alvin Nurfaiz, M.T.';
-$jabatan_mentor = $_SESSION['jabatan'] ?? 'Pembimbing Lapangan'; // pemanggilan jabatan mentor dari login mentor
+$nama_mentor = $_SESSION['nama_user'] ?? 'Mentor Bimbingan';
+$jabatan_mentor = $_SESSION['jabatan'] ?? 'Pembimbing Lapangan';
+
 
 // =========================================================================
 // 1. LOGIKA PENERIMAAN AKSI (POST) - CRUD BIMBINGAN
@@ -22,11 +23,7 @@ $jabatan_mentor = $_SESSION['jabatan'] ?? 'Pembimbing Lapangan'; // pemanggilan 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
-        $_SESSION['alert'] = [
-            'type' => 'error',
-            'title' => 'Sesi Berakhir',
-            'message' => 'CSRF Token Invalid. Silakan muat ulang halaman.'
-        ];
+        $_SESSION['alert'] = ['type' => 'error', 'title' => 'Sesi Berakhir', 'message' => 'CSRF Token Invalid. Silakan muat ulang halaman.'];
         header("Location: ../mentor/bimbingan.php");
         exit;
     }
@@ -39,11 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt_del) {
             $stmt_del->bind_param("ii", $bimbingan_id, $mentor_id);
             if ($stmt_del->execute()) {
-                $_SESSION['alert'] = [
-                    'type' => 'success',
-                    'title' => 'Berhasil Dihapus',
-                    'message' => 'Jadwal bimbingan telah dihapus dari kalender.'
-                ];
+                $_SESSION['alert'] = ['type' => 'success', 'title' => 'Berhasil Dihapus', 'message' => 'Jadwal bimbingan telah dihapus dari kalender.'];
             }
             $stmt_del->close();
         }
@@ -77,16 +70,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt_u->close();
             }
         }
-
         if ($target_user_id <= 0) $target_user_id = 1; 
     }
 
     if (empty($topik) || empty($catatan_revisi)) {
-        $_SESSION['alert'] = [
-            'type' => 'warning',
-            'title' => 'Form Tidak Lengkap',
-            'message' => 'Topik dan Catatan Revisi wajib diisi!'
-        ];
+        $_SESSION['alert'] = ['type' => 'warning', 'title' => 'Form Tidak Lengkap', 'message' => 'Topik dan Catatan Revisi wajib diisi!'];
         header("Location: ../mentor/bimbingan.php");
         exit;
     }
@@ -96,22 +84,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt_upd) {
             $stmt_upd->bind_param("isssssii", $target_user_id, $tanggal_waktu, $topik, $metode, $catatan_revisi, $status, $bimbingan_id, $mentor_id);
             if ($stmt_upd->execute()) {
-                $_SESSION['alert'] = [
-                    'type' => 'success',
-                    'title' => 'Berhasil Diperbarui',
-                    'message' => 'Data bimbingan & revisi berhasil diperbarui.'
-                ];
+                $_SESSION['alert'] = ['type' => 'success', 'title' => 'Berhasil Diperbarui', 'message' => 'Data bimbingan & revisi berhasil diperbarui.'];
             } else {
-                $_SESSION['alert'] = [
-                    'type' => 'error',
-                    'title' => 'Gagal Memperbarui',
-                    'message' => 'Terjadi kesalahan server saat memperbarui data.'
-                ];
+                $_SESSION['alert'] = ['type' => 'error', 'title' => 'Gagal Memperbarui', 'message' => 'Terjadi kesalahan server saat memperbarui data.'];
             }
             $stmt_upd->close();
         }
     } else {
-        // PENANGANAN INPUT BARU DENGAN DUKUNGAN SEMUA MAHASISWA (BULK INSERT)
         if ($raw_user_id === 'all') {
             $q_all_users = $conn->query("SELECT id FROM users");
             $success_count = 0;
@@ -130,34 +109,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($success_count > 0) {
-                $_SESSION['alert'] = [
-                    'type' => 'success',
-                    'title' => 'Bimbingan Disimpan!',
-                    'message' => 'Jadwal bimbingan & catatan revisi berhasil didaftarkan untuk seluruh mahasiswa.'
-                ];
+                $_SESSION['alert'] = ['type' => 'success', 'title' => 'Bimbingan Disimpan!', 'message' => 'Jadwal bimbingan & catatan revisi berhasil didaftarkan untuk seluruh mahasiswa.'];
             } else {
-                $_SESSION['alert'] = [
-                    'type' => 'error',
-                    'title' => 'Gagal Menyimpan',
-                    'message' => 'Terjadi kesalahan saat menyimpan bimbingan.'
-                ];
+                $_SESSION['alert'] = ['type' => 'error', 'title' => 'Gagal Menyimpan', 'message' => 'Terjadi kesalahan saat menyimpan bimbingan.'];
             }
         } else {
             $stmt_ins = $conn->prepare("INSERT INTO bimbingan (mentor_id, user_id, tanggal_waktu, topik, metode, catatan_revisi, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
             if ($stmt_ins) {
                 $stmt_ins->bind_param("iisssss", $mentor_id, $target_user_id, $tanggal_waktu, $topik, $metode, $catatan_revisi, $status);
                 if ($stmt_ins->execute()) {
-                    $_SESSION['alert'] = [
-                        'type' => 'success',
-                        'title' => 'Bimbingan Disimpan!',
-                        'message' => 'Jadwal bimbingan & catatan revisi berhasil didaftarkan.'
-                    ];
+                    $_SESSION['alert'] = ['type' => 'success', 'title' => 'Bimbingan Disimpan!', 'message' => 'Jadwal bimbingan & catatan revisi berhasil didaftarkan.'];
                 } else {
-                    $_SESSION['alert'] = [
-                        'type' => 'error',
-                        'title' => 'Gagal Menyimpan',
-                        'message' => 'Terjadi kesalahan saat menyimpan bimbingan.'
-                    ];
+                    $_SESSION['alert'] = ['type' => 'error', 'title' => 'Gagal Menyimpan', 'message' => 'Terjadi kesalahan saat menyimpan bimbingan.'];
                 }
                 $stmt_ins->close();
             }
@@ -172,16 +135,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 2. LOGIKA PENYEDIAAN DATA VIEW (GET)
 // =========================================================================
 
-// A. KALENDER
-$bulan_aktif = isset($_GET['bulan']) ? sprintf('%02d', intval($_GET['bulan'])) : '08';
-$tahun_aktif = '2026';
-$nama_bulan_map = ['07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober'];
-if (!isset($nama_bulan_map[$bulan_aktif])) $bulan_aktif = '08';
+// A. KALENDER (BACA BULAN DAN TAHUN SERVER OTOMATIS)
+$bulan_aktif = isset($_GET['bulan']) ? sprintf('%02d', intval($_GET['bulan'])) : date('m');
+$tahun_aktif = date('Y');
+
+$nama_bulan_map = [
+    '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
+    '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
+    '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+];
+if (!isset($nama_bulan_map[$bulan_aktif])) $bulan_aktif = date('m');
 
 $first_day_timestamp = strtotime("$tahun_aktif-$bulan_aktif-01");
 $total_hari          = date('t', $first_day_timestamp);
 $day_of_week         = date('N', $first_day_timestamp);
 $slot_kosong         = $day_of_week - 1;
+
 
 // B. DAFTAR MAHASISWA
 $mahasiswa_list = [];
@@ -229,5 +198,5 @@ if ($q_timeline && $q_timeline->num_rows > 0) {
         ];
     }
 }
-$json_timeline = json_encode($timeline_data); // Lempar ke JS
+$json_timeline = json_encode($timeline_data); 
 ?>
