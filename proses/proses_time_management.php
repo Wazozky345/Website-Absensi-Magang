@@ -14,12 +14,10 @@ if (file_exists(__DIR__ . '/../config/sesi.php')) {
 
 date_default_timezone_set('Asia/Jakarta');
 
-// === FIX BUG: PEMBUAT TOKEN CSRF ===
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Deklarasikan variabel $user_id dari sesi secara eksplisit
 $user_id = $_SESSION['user_id'] ?? 0;
 
 if ($user_id <= 0) {
@@ -27,7 +25,6 @@ if ($user_id <= 0) {
     exit;
 }
 
-// === OTOMATISASI SCHEMA TABLE SAFEGUARD ===
 $conn->query("CREATE TABLE IF NOT EXISTS `agenda` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT NOT NULL,
@@ -55,7 +52,6 @@ $conn->query("CREATE TABLE IF NOT EXISTS `milestones` (
 // 2. PROSES CRUD AGENDA MANDIRI KALENDER & TARGET MILESTONE (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // SATPAM CSRF: Periksa apakah token dikirim dan cocok dengan yang ada di server
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         $_SESSION['alert'] = [
             'type' => 'error',
@@ -69,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action    = $_POST['action'] ?? '';
     $id_agenda = intval($_POST['id_agenda'] ?? 0);
 
-    // A. PROSES HAPUS (DELETE) AGENDA
     if (isset($_POST['hapus_agenda']) && $id_agenda > 0) {
         $stmt_del = $conn->prepare("DELETE FROM agenda WHERE id = ? AND user_id = ?");
         $stmt_del->bind_param("ii", $id_agenda, $user_id);
@@ -88,14 +83,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
         }
         $stmt_del->close();
-
         header("Location: " . $_SERVER['REQUEST_URI']);
         exit;
     } 
     
-    // B. PROSES SIMPAN / UPDATE AGENDA (CREATE & EDIT)
     elseif (isset($_POST['simpan_agenda'])) {
-        
         $judul     = htmlspecialchars(trim($_POST['judul_agenda'] ?? ''), ENT_QUOTES, 'UTF-8');
         $kategori  = htmlspecialchars(trim($_POST['kategori'] ?? 'Umum'), ENT_QUOTES, 'UTF-8');
         $tanggal   = htmlspecialchars(trim($_POST['tanggal_agenda'] ?? date('Y-m-d')), ENT_QUOTES, 'UTF-8');
@@ -108,17 +100,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_ins->bind_param("issssis", $user_id, $judul, $kategori, $tanggal, $waktu, $offset, $deskripsi);
             
             if ($stmt_ins->execute()) {
-                $_SESSION['alert'] = [
-                    'type' => 'success',
-                    'title' => 'Agenda Ditambahkan!',
-                    'message' => 'Agenda baru berhasil dicatat di kalender.'
-                ];
+                $_SESSION['alert'] = ['type' => 'success', 'title' => 'Agenda Ditambahkan!', 'message' => 'Agenda baru berhasil dicatat di kalender.'];
             } else {
-                $_SESSION['alert'] = [
-                    'type' => 'error',
-                    'title' => 'Gagal Menyimpan',
-                    'message' => 'Gagal menambahkan agenda baru.'
-                ];
+                $_SESSION['alert'] = ['type' => 'error', 'title' => 'Gagal Menyimpan', 'message' => 'Gagal menambahkan agenda baru.'];
             }
             $stmt_ins->close();
 
@@ -127,17 +111,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_upd->bind_param("ssssisii", $judul, $kategori, $tanggal, $waktu, $offset, $deskripsi, $id_agenda, $user_id);
             
             if ($stmt_upd->execute()) {
-                $_SESSION['alert'] = [
-                    'type' => 'success',
-                    'title' => 'Agenda Diperbarui!',
-                    'message' => 'Data agenda berhasil diperbarui.'
-                ];
+                $_SESSION['alert'] = ['type' => 'success', 'title' => 'Agenda Diperbarui!', 'message' => 'Data agenda berhasil diperbarui.'];
             } else {
-                $_SESSION['alert'] = [
-                    'type' => 'error',
-                    'title' => 'Gagal Memperbarui',
-                    'message' => 'Gagal memperbarui data agenda.'
-                ];
+                $_SESSION['alert'] = ['type' => 'error', 'title' => 'Gagal Memperbarui', 'message' => 'Gagal memperbarui data agenda.'];
             }
             $stmt_upd->close();
         }
@@ -146,7 +122,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // C. PROSES UBAH MILESTONE BULANAN (UPDATE)
     elseif (isset($_POST['ubah_milestone'])) {
         $bulan_key   = trim($_POST['bulan_key'] ?? '07');
         $status      = trim($_POST['status_milestone'] ?? 'Pending');
@@ -157,20 +132,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt_ms_upd->bind_param("sssis", $status, $operasional, $it, $user_id, $bulan_key);
 
         if ($stmt_ms_upd->execute()) {
-            $_SESSION['alert'] = [
-                'type' => 'success',
-                'title' => 'Milestone Diperbarui!',
-                'message' => 'Target milestone bulanan berhasil disimpan.'
-            ];
+            $_SESSION['alert'] = ['type' => 'success', 'title' => 'Milestone Diperbarui!', 'message' => 'Target milestone bulanan berhasil disimpan.'];
         } else {
-            $_SESSION['alert'] = [
-                'type' => 'error',
-                'title' => 'Gagal Memperbarui',
-                'message' => 'Gagal memperbarui target milestone.'
-            ];
+            $_SESSION['alert'] = ['type' => 'error', 'title' => 'Gagal Memperbarui', 'message' => 'Gagal memperbarui target milestone.'];
         }
         $stmt_ms_upd->close();
-
         header("Location: time-management.php?bulan=" . urlencode($bulan_key));
         exit;
     }
@@ -178,25 +144,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
 // 3. LOGIKA MATEMATIKA RENDER KALENDER
-// Membaca bulan saat ini secara otomatis jika tidak ada request '?bulan=' dari URL
 $bulan_aktif = isset($_GET['bulan']) ? sprintf('%02d', intval($_GET['bulan'])) : date('m');
 $tahun_aktif = date('Y');
 
-// Konversi angka ke nama bulan
 $nama_bulan_indo = [
-    '07' => 'Juli ' . $tahun_aktif,
-    '08' => 'Agustus ' . $tahun_aktif,
-    '09' => 'September ' . $tahun_aktif,
-    '10' => 'Oktober ' . $tahun_aktif
+    '01' => 'Januari ' . $tahun_aktif, '02' => 'Februari ' . $tahun_aktif, '03' => 'Maret ' . $tahun_aktif,
+    '04' => 'April ' . $tahun_aktif, '05' => 'Mei ' . $tahun_aktif, '06' => 'Juni ' . $tahun_aktif,
+    '07' => 'Juli ' . $tahun_aktif, '08' => 'Agustus ' . $tahun_aktif, '09' => 'September ' . $tahun_aktif,
+    '10' => 'Oktober ' . $tahun_aktif, '11' => 'November ' . $tahun_aktif, '12' => 'Desember ' . $tahun_aktif
 ];
 
-// Menghitung slot kosong dan total hari untuk tampilan grid kalender
 $total_hari   = date('t', strtotime("$tahun_aktif-$bulan_aktif-01"));
 $hari_pertama = date('N', strtotime("$tahun_aktif-$bulan_aktif-01"));
 $slot_kosong  = $hari_pertama - 1; 
 
 
-// 4. AMBIL DATA AGENDA DARI DATABASE UNTUK BULAN AKTIF
+// 4. AMBIL DATA AGENDA MANDIRI
 $agenda_list = [];
 $stmt_get_ag = $conn->prepare("SELECT * FROM agenda WHERE user_id = ? AND MONTH(tanggal) = ? AND YEAR(tanggal) = ? ORDER BY waktu ASC");
 $stmt_get_ag->bind_param("iss", $user_id, $bulan_aktif, $tahun_aktif);
@@ -206,14 +169,36 @@ $res_get_ag = $stmt_get_ag->get_result();
 if ($res_get_ag) {
     while ($row = $res_get_ag->fetch_assoc()) {
         $tgl_hari = date('j', strtotime($row['tanggal'])); 
-        // Kelompokkan dalam array bertingkat jika ada lebih dari 1 agenda per tanggal
         $agenda_list[$tgl_hari][] = $row; 
     }
 }
 $stmt_get_ag->close();
 
+// 4.5 [REVISI] SINKRONISASI JADWAL BIMBINGAN DARI MENTOR KE KALENDER MAHASISWA
+$stmt_get_bimb = $conn->prepare("SELECT * FROM bimbingan WHERE user_id = ? AND MONTH(tanggal_waktu) = ? AND YEAR(tanggal_waktu) = ? ORDER BY tanggal_waktu ASC");
+$stmt_get_bimb->bind_param("iss", $user_id, $bulan_aktif, $tahun_aktif);
+$stmt_get_bimb->execute();
+$res_get_bimb = $stmt_get_bimb->get_result();
 
-// 5. AMBIL DATA MILESTONE DINAMIS DARI DATABASE (DENGAN AUTOMATIC SEEDER)
+if ($res_get_bimb) {
+    while ($row = $res_get_bimb->fetch_assoc()) {
+        $tgl_hari = date('j', strtotime($row['tanggal_waktu'])); 
+        
+        $agenda_list[$tgl_hari][] = [
+            'id'               => 'bimbingan_' . $row['id'], 
+            'judul'            => 'Bimbingan: ' . $row['topik'],
+            'kategori'         => 'Bimbingan', 
+            'tanggal'          => date('Y-m-d', strtotime($row['tanggal_waktu'])),
+            'waktu'            => date('H:i:s', strtotime($row['tanggal_waktu'])),
+            'pengingat_offset' => 12, 
+            'deskripsi'        => "Metode: " . $row['metode'] . "\nStatus: " . $row['status'] . "\nCatatan Mentor: " . (!empty($row['catatan_revisi']) ? $row['catatan_revisi'] : '-')
+        ];
+    }
+}
+$stmt_get_bimb->close();
+
+
+// 5. AMBIL DATA MILESTONE
 $milestone_list = [];
 $stmt_ms = $conn->prepare("SELECT * FROM milestones WHERE user_id = ? ORDER BY bulan_key ASC");
 $stmt_ms->bind_param("i", $user_id);
@@ -230,7 +215,6 @@ while ($row = $res_ms->fetch_assoc()) {
     ];
 }
 
-// OTOMASI SEEDER: Jika data milestone di database user ini masih kosong, isi otomatis
 if (empty($milestone_list)) {
     $defaults = [
         ['07', 'Milestone 1 (Juli)', 'Selesai', 'Penginputan & rekapitulasi data harian finansial (Tabungan, Giro, Depo) Uker Sumedang ke Excel.', 'Analisis kelemahan sistem absen fisik pemagang & perancangan basis data Tracker.'],
@@ -246,7 +230,6 @@ if (empty($milestone_list)) {
         $ins->close();
     }
 
-    // Ambil ulang setelah di-isi data default
     $stmt_ms->execute();
     $res_ms = $stmt_ms->get_result();
     while ($row = $res_ms->fetch_assoc()) {
@@ -262,7 +245,7 @@ if (empty($milestone_list)) {
 $stmt_ms->close();
 
 
-// 6. FUNGSI TRANSLATE HARI INDONESIA
+// 6. FUNGSI TRANSLATE HARI
 function hariIndo(string $tanggal): string
 {
     $hari_inggris = date('l', strtotime($tanggal));
@@ -274,9 +257,8 @@ function hariIndo(string $tanggal): string
 }
 
 
-// 7. FITUR PENGINGAT DINAMIS (ALGORITMA PENCARIAN DATABASE)
+// 7. FITUR PENGINGAT DINAMIS
 $agenda_besok = null;
-
 $query_reminder = $conn->prepare("
     SELECT judul, tanggal, waktu, pengingat_offset, deskripsi 
     FROM agenda 
