@@ -153,6 +153,7 @@ $jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION
                                 <div>
                                     <label class="block text-xs font-bold text-gray-700 mb-1.5">Mahasiswa Bimbingan <span class="text-rose-500">*</span></label>
                                     <select name="user_id" id="selectUserId" onchange="updateSelectedStudentInfo()" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-blue-500 font-medium text-gray-800">
+                                        <option value="all" data-nim="Semua" data-nama="Semua Mahasiswa">👥 Semua Mahasiswa Bimbingan</option>
                                         <?php foreach ($mahasiswa_list as $m): ?>
                                             <option value="<?php echo $m['id']; ?>" data-nim="<?php echo htmlspecialchars($m['nim']); ?>" data-nama="<?php echo htmlspecialchars($m['nama_user']); ?>">
                                                 <?php echo htmlspecialchars($m['nama_user']); ?> (<?php echo htmlspecialchars($m['nim']); ?>)
@@ -255,6 +256,30 @@ $jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION
             }
         }
 
+        // FUNGSI EXPAND INLINE DENGAN KOREKSI TEXT OVERFLOW & BREAK-WORDS
+        function toggleInlineDetail(btn) {
+            const card = btn.closest('.timeline-item');
+            const catatanElem = card.querySelector('.catatan-text');
+            const topikElem   = card.querySelector('.topik-text');
+            const isExpanded  = card.classList.contains('is-expanded');
+
+            if (isExpanded) {
+                card.classList.remove('is-expanded', 'bg-blue-50/40', 'border-blue-200');
+                catatanElem.classList.remove('line-clamp-none');
+                catatanElem.classList.add('line-clamp-2');
+                if (topikElem) topikElem.classList.add('truncate');
+                btn.innerHTML = '<span>Info</span> <span class="text-[9px]">ℹ️</span>';
+                btn.className = "text-[10px] bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 font-bold px-2 py-0.5 rounded-lg transition flex items-center gap-1 cursor-pointer shrink-0";
+            } else {
+                card.classList.add('is-expanded', 'bg-blue-50/40', 'border-blue-200');
+                catatanElem.classList.remove('line-clamp-2');
+                catatanElem.classList.add('line-clamp-none');
+                if (topikElem) topikElem.classList.remove('truncate');
+                btn.innerHTML = '<span>Tutup</span> <span class="text-[9px]">✕</span>';
+                btn.className = "text-[10px] bg-blue-600 text-white font-bold px-2 py-0.5 rounded-lg transition flex items-center gap-1 cursor-pointer shrink-0 shadow-sm";
+            }
+        }
+
         function updateSelectedStudentInfo() {
             const select = document.getElementById('selectUserId');
             if (!select || select.options.length === 0) return;
@@ -270,18 +295,48 @@ $jabatan_display = !empty($jabatan_mentor) ? $jabatan_mentor : (!empty($_SESSION
             const container = document.getElementById('containerTimeline');
             container.innerHTML = ''; 
 
-            if (timelineDataDB[userId] && timelineDataDB[userId].length > 0) {
-                timelineDataDB[userId].forEach(item => {
+            let itemsToRender = [];
+
+            if (userId === 'all') {
+                Object.keys(timelineDataDB).forEach(uid => {
+                    const opt = select.querySelector(`option[value="${uid}"]`);
+                    const stName = opt ? (opt.getAttribute('data-nama') || 'Mahasiswa') : 'Mahasiswa';
+                    if (Array.isArray(timelineDataDB[uid])) {
+                        timelineDataDB[uid].forEach(item => {
+                            itemsToRender.push({ ...item, studentName: stName });
+                        });
+                    }
+                });
+            } else {
+                if (timelineDataDB[userId] && timelineDataDB[userId].length > 0) {
+                    timelineDataDB[userId].forEach(item => {
+                        itemsToRender.push({ ...item, studentName: '' });
+                    });
+                }
+            }
+
+            if (itemsToRender.length > 0) {
+                itemsToRender.forEach(item => {
                     let borderColor = item.status === 'Revisi' ? 'border-rose-400' : 'border-blue-400';
-                    let badgeBg     = item.status === 'Revisi' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600';
-                    
+                    let badgeBg     = item.status === 'Revisi' ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-blue-50 text-blue-600 border border-blue-200';
+                    let displayName = item.studentName ? item.studentName + ' • ' : '';
+
                     let html = `
-                        <div class="relative pl-4 border-l-2 ${borderColor} space-y-1 mb-4">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-gray-800">${item.tanggal}</span>
-                                <span class="text-[10px] ${badgeBg} px-2 py-0.5 rounded-md font-bold truncate max-w-[100px]">${item.topik}</span>
+                        <div class="timeline-item relative pl-4 border-l-2 ${borderColor} space-y-1.5 mb-4 p-3 rounded-2xl border border-gray-100 bg-white hover:bg-gray-50/50 transition-all duration-300 overflow-hidden w-full">
+                            <div class="flex items-center justify-between gap-2 w-full">
+                                <span class="text-xs font-bold text-gray-800 truncate" title="${displayName}${item.tanggal}">
+                                    ${displayName}${item.tanggal}
+                                </span>
+                                <button type="button" 
+                                        onclick="toggleInlineDetail(this)" 
+                                        class="text-[10px] ${badgeBg} hover:bg-blue-100 font-bold px-2 py-0.5 rounded-lg transition flex items-center gap-1 cursor-pointer shrink-0"
+                                        title="Klik untuk memperbesar / memperkecil detail info">
+                                    <span>Info</span>
+                                    <span class="text-[9px]">ℹ️</span>
+                                </button>
                             </div>
-                            <p class="text-xs text-gray-600 leading-relaxed">
+                            <div class="topik-text text-[11px] font-bold text-blue-600 truncate break-words [overflow-wrap:anywhere]">${item.topik}</div>
+                            <p class="catatan-text text-xs text-gray-600 leading-relaxed line-clamp-2 whitespace-pre-line break-words [overflow-wrap:anywhere] transition-all">
                                 ${item.catatan || 'Tidak ada catatan.'}
                             </p>
                         </div>
